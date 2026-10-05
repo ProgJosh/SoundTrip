@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "SoundTrip",
+    "slug": "soundtrip",
+    "version": "0.1.0",
+    "scheme": "soundtrip",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.soundtrip.player"
+    },
+    "android": {
+      "package": "app.soundtrip.player"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "SoundTrip",
+      "themeColor": "#101313"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-document-picker",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-sqlite",
+      "expo-web-browser",
+      "expo-status-bar"
+    ]
+  }
+}
