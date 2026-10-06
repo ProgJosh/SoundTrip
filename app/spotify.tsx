@@ -22,6 +22,8 @@ export default function Spotify() {
   const [connected, setConnected] = useState(false);
   const [pending, setPending] = useState(false);
   const [playlists, setPlaylists] = useState<SpotifySummary[]>([]);
+  const [listPage, setListPage] = useState(0);
+  const [entryPages, setEntryPages] = useState<Record<string, number>>({});
   const epoch = useRef(0);
   useEffect(() => {
     connectedSpotify().then(setConnected);
@@ -64,6 +66,8 @@ export default function Spotify() {
     await disconnectSpotify();
     setConnected(false);
     setPlaylists([]);
+    setEntryPages({});
+    setListPage(0);
     update((s) => ({ ...s, spotify: [] }));
     await checkpoint();
   }
@@ -154,7 +158,7 @@ export default function Spotify() {
             </Text>
           )}
         </View>
-        {playlists.map((p) => (
+        {playlists.slice(listPage * 20, (listPage + 1) * 20).map((p) => (
           <View
             key={p.id}
             style={[
@@ -163,7 +167,21 @@ export default function Spotify() {
               { justifyContent: "space-between", flexWrap: "wrap" },
             ]}
           >
-            <Text style={{ color: c.text }}>{p.name}</Text>
+            <View style={{ gap: 10 }}>
+              <Text style={{ color: c.text }}>{p.name}</Text>
+              <Image
+                source={require("../assets/spotify-logo.png")}
+                accessibilityLabel="Spotify"
+                style={{ width: 96, height: 29, resizeMode: "contain" }}
+              />
+              <Button
+                onPress={() => {
+                  void Linking.openURL(p.url);
+                }}
+              >
+                Open playlist in Spotify
+              </Button>
+            </View>
             <Button
               disabled={pending}
               onPress={() => {
@@ -171,6 +189,7 @@ export default function Spotify() {
                   const current = epoch.current;
                   const imported = await importSpotifyPlaylist(p);
                   if (current !== epoch.current) return;
+                  setEntryPages((pages) => ({ ...pages, [p.id]: 0 }));
                   update((s) => ({
                     ...s,
                     spotify: [
@@ -185,6 +204,25 @@ export default function Spotify() {
             </Button>
           </View>
         ))}
+        {playlists.length > 20 && (
+          <View style={styles.wrap}>
+            <Button
+              disabled={listPage === 0}
+              onPress={() => setListPage((n) => n - 1)}
+            >
+              Previous playlists
+            </Button>
+            <Text style={styles.subtitle}>
+              Page {listPage + 1} of {Math.ceil(playlists.length / 20)}
+            </Text>
+            <Button
+              disabled={(listPage + 1) * 20 >= playlists.length}
+              onPress={() => setListPage((n) => n + 1)}
+            >
+              Next playlists
+            </Button>
+          </View>
+        )}
         {state.spotify.map((p) => (
           <View key={p.id} style={styles.card}>
             <View
@@ -210,104 +248,147 @@ export default function Spotify() {
             >
               Open playlist in Spotify
             </Button>
-            {p.entries.map((entry, i) => {
-              const suggestions = matchLocal(entry, state.tracks);
-              const local = state.tracks.find(
-                (t) => t.id === entry.localTrackId,
-              );
-              return (
-                <View
-                  key={`${entry.id}-${i}`}
-                  style={{
-                    borderTopWidth: 1,
-                    borderColor: c.border,
-                    paddingTop: 16,
-                    gap: 10,
-                  }}
-                >
-                  <Text style={{ color: c.text }}>
-                    {entry.title} · {entry.artist}
-                  </Text>
-                  <Text style={{ color: c.muted, fontSize: 12 }}>
-                    Spotify reference · {entry.album}
-                  </Text>
-                  <View style={styles.wrap}>
-                    <Button
-                      onPress={() => {
-                        void Linking.openURL(entry.url);
-                      }}
-                    >
-                      Open in Spotify
-                    </Button>
-                    {local ? (
-                      <>
-                        <Button
-                          icon="play"
-                          disabled={!state.files[local.id]}
-                          onPress={() => {
-                            void playback.play([local.id]);
-                          }}
-                        >
-                          Play your local file
-                        </Button>
-                        <Button
-                          onPress={() =>
-                            update((s) => ({
-                              ...s,
-                              spotify: s.spotify.map((v) =>
-                                v.id === p.id
-                                  ? {
-                                      ...v,
-                                      entries: v.entries.map((e, n) =>
-                                        n === i
-                                          ? { ...e, localTrackId: undefined }
-                                          : e,
-                                      ),
-                                    }
-                                  : v,
-                              ),
-                            }))
-                          }
-                        >
-                          Unlink file
-                        </Button>
-                      </>
-                    ) : (
-                      suggestions.map((t) => (
-                        <Button
-                          key={t.id}
-                          onPress={() =>
-                            update((s) => ({
-                              ...s,
-                              spotify: s.spotify.map((v) =>
-                                v.id === p.id
-                                  ? {
-                                      ...v,
-                                      entries: v.entries.map((e, n) =>
-                                        n === i
-                                          ? { ...e, localTrackId: t.id }
-                                          : e,
-                                      ),
-                                    }
-                                  : v,
-                              ),
-                            }))
-                          }
-                        >
-                          Confirm match: {t.filename}
-                        </Button>
-                      ))
+            {p.entries
+              .slice(
+                (entryPages[p.id] || 0) * 20,
+                ((entryPages[p.id] || 0) + 1) * 20,
+              )
+              .map((entry, visibleIndex) => {
+                const i = (entryPages[p.id] || 0) * 20 + visibleIndex;
+                const suggestions = matchLocal(entry, state.tracks);
+                const local = state.tracks.find(
+                  (t) => t.id === entry.localTrackId,
+                );
+                return (
+                  <View
+                    key={`${entry.id}-${i}`}
+                    style={{
+                      borderTopWidth: 1,
+                      borderColor: c.border,
+                      paddingTop: 16,
+                      gap: 10,
+                    }}
+                  >
+                    <Text style={{ color: c.text }}>
+                      {entry.title} · {entry.artist}
+                    </Text>
+                    <Text style={{ color: c.muted, fontSize: 12 }}>
+                      Spotify reference · {entry.album}
+                    </Text>
+                    <View style={styles.wrap}>
+                      <Button
+                        onPress={() => {
+                          void Linking.openURL(entry.url);
+                        }}
+                      >
+                        Open in Spotify
+                      </Button>
+                      {local ? (
+                        <>
+                          <Button
+                            icon="play"
+                            disabled={!state.files[local.id]}
+                            onPress={() => {
+                              void playback.play([local.id]);
+                            }}
+                          >
+                            Play your local file
+                          </Button>
+                          <Button
+                            onPress={() =>
+                              update((s) => ({
+                                ...s,
+                                spotify: s.spotify.map((v) =>
+                                  v.id === p.id
+                                    ? {
+                                        ...v,
+                                        entries: v.entries.map((e, n) =>
+                                          n === i
+                                            ? { ...e, localTrackId: undefined }
+                                            : e,
+                                        ),
+                                      }
+                                    : v,
+                                ),
+                              }))
+                            }
+                          >
+                            Unlink file
+                          </Button>
+                        </>
+                      ) : (
+                        suggestions.map((t) => (
+                          <Button
+                            key={t.id}
+                            onPress={() =>
+                              update((s) => ({
+                                ...s,
+                                spotify: s.spotify.map((v) =>
+                                  v.id === p.id
+                                    ? {
+                                        ...v,
+                                        entries: v.entries.map((e, n) =>
+                                          n === i
+                                            ? { ...e, localTrackId: t.id }
+                                            : e,
+                                        ),
+                                      }
+                                    : v,
+                                ),
+                              }))
+                            }
+                          >
+                            Confirm match: {t.filename}
+                          </Button>
+                        ))
+                      )}
+                    </View>
+                    {!local && !suggestions.length && (
+                      <Text style={styles.subtitle}>
+                        No matching local file. Import a file you own and check
+                        its title and artist.
+                      </Text>
                     )}
                   </View>
-                  {!local && !suggestions.length && (
-                    <Text style={styles.subtitle}>
-                      No matching local file. Import a file you own and check
-                      its title and artist.
-                    </Text>
-                  )}
-                </View>
-              );
-            })}
+                );
+              })}
+            {!p.entries.length && (
+              <Text style={styles.subtitle}>
+                No permitted track metadata was returned for this playlist.
+              </Text>
+            )}
+            {p.entries.length > 20 && (
+              <View style={styles.wrap}>
+                <Button
+                  disabled={!entryPages[p.id]}
+                  onPress={() =>
+                    setEntryPages((pages) => ({
+                      ...pages,
+                      [p.id]: (pages[p.id] || 0) - 1,
+                    }))
+                  }
+                >
+                  Previous tracks
+                </Button>
+                <Text style={styles.subtitle}>
+                  Page {(entryPages[p.id] || 0) + 1} of{" "}
+                  {Math.ceil(p.entries.length / 20)}
+                </Text>
+                <Button
+                  disabled={
+                    ((entryPages[p.id] || 0) + 1) * 20 >= p.entries.length
+                  }
+                  onPress={() =>
+                    setEntryPages((pages) => ({
+                      ...pages,
+                      [p.id]: (pages[p.id] || 0) + 1,
+                    }))
+                  }
+                >
+                  Next tracks
+                </Button>
+              </View>
+            )}
           </View>
         ))}
         {!state.spotify.length && (

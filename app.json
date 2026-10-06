@@ -11,7 +11,13 @@
       "bundleIdentifier": "app.soundtrip.player"
     },
     "android": {
-      "package": "app.soundtrip.player"
+      "package": "app.soundtrip.player",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",

@@ -1,43 +1,728 @@
-import React, { useState } from 'react';
-import { Modal, Platform, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useLibrary } from '../state/Library';
-import { usePlayback } from '../state/Playback';
-import { Mood, Track, clock, moods } from '../core/model';
-import { Artwork, Button, Empty, FadeIn, Icon } from './kit';
-import { Shell } from './Shell';
-import { c, styles } from './theme';
+import React, { useState } from "react";
+import {
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLibrary } from "../state/Library";
+import { usePlayback } from "../state/Playback";
+import { Mood, Track, clock, moods } from "../core/model";
+import { Artwork, Button, Empty, FadeIn, Icon } from "./kit";
+import { Shell } from "./Shell";
+import { c, styles } from "./theme";
 export function LibraryScreen({ search = false }: { search?: boolean }) {
-  const { state, importAudio, busy, update } = useLibrary(); const p = usePlayback(); const router = useRouter(); const { width } = useWindowDimensions();
-  const [query, setQuery] = useState(''); const [filter, setFilter] = useState('All tracks'); const [mood, setMood] = useState<Mood | null>(null); const [details, setDetails] = useState<Track | null>(null);
-  const tracks = state.tracks.filter(t => `${t.title} ${t.artist} ${t.album}`.toLowerCase().includes(query.toLowerCase()) && (filter !== 'Favorites' || t.favorite) && (filter !== 'On this device' || state.files[t.id]) && (!mood || t.tags.includes(mood)));
-  return <Shell><FadeIn reduce={state.settings.reducedMotion}>
-    {!search && <View style={styles.section}>
-      <View style={[styles.row, { justifyContent: 'space-between' }]}><Text style={styles.label}>YOUR EVERYDAY ESCAPE</Text><Text style={{ color: c.muted, fontSize: 11 }}>LOCAL FIRST. ALWAYS YOURS.</Text></View>
-      <LinearGradient colors={['#233b35', '#334a3b', '#535945']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ minHeight: width > 700 ? 268 : 290, borderRadius: 22, padding: width > 700 ? 34 : 24, overflow: 'hidden', justifyContent: 'center' }}>
-        <View pointerEvents="none" style={{ position: 'absolute', width: 300, height: 300, borderRadius: 180, right: -30, top: -45, borderWidth: 1, borderColor: '#c2d4a660' }} /><View pointerEvents="none" style={{ position: 'absolute', width: 240, height: 240, borderRadius: 140, right: 0, top: -15, borderWidth: 1, borderColor: '#c2d4a660' }} /><View pointerEvents="none" style={{ position: 'absolute', width: 180, height: 180, borderRadius: 100, right: 30, top: 15, borderWidth: 32, borderColor: '#b8c59b50', backgroundColor: '#dce8b324' }} /><View pointerEvents="none" style={{ position: 'absolute', width: 450, height: 90, right: -70, bottom: -30, borderRadius: 120, backgroundColor: '#122b24a0', transform: [{ rotate: '-15deg' }] }} />
-        <View style={{ maxWidth: width > 700 ? '75%' : '100%', gap: 17 }}><Text style={{ color: '#d8e9cb', letterSpacing: 2, fontSize: 10, fontWeight: '700' }}>GOOD MUSIC. NO SIGNAL NEEDED.</Text><Text style={{ fontFamily: Platform.OS === 'web' ? 'Georgia' : undefined, fontSize: width > 700 ? 48 : 37, lineHeight: width > 700 ? 52 : 43, color: '#f5f3df', letterSpacing: -1.8 }}>Your music.{'\n'}Your kind of escape.</Text><Text style={{ color: '#cedac5', fontSize: 13, lineHeight: 20, maxWidth: 330 }}>The songs you carry, wherever you go. Build a little world of your own.</Text><View style={styles.row}><Button primary icon="add" onPress={() => { void importAudio(); }} disabled={busy}>{busy ? 'Importing…' : 'Import your music'}</Button><Text style={{ fontSize: 11, color: '#d5dfcc' }}>From your device</Text></View></View>
-      </LinearGradient>
-    </View>}
-    {!search && <View style={styles.section}><View style={[styles.row, { justifyContent: 'space-between' }]}><Text style={{ fontSize: 22, color: c.text, fontWeight: '600', letterSpacing: -0.6 }}>Find your frequency</Text><Text style={{ color: c.muted, fontSize: 11 }}>A mood, a moment, a mix</Text></View><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>{moods.map((m, i) => <Pressable key={m} accessibilityRole="button" accessibilityLabel={`Shuffle ${m}`} onPress={() => { setMood(mood === m ? null : m); void p.play(state.tracks.filter(t => t.tags.includes(m)).map(t => t.id), 0, true); }} style={{ flexBasis: width > 1100 ? '18%' : width > 600 ? '30%' : '46%', flexGrow: 1, backgroundColor: ['#384741', '#344545', '#534637', '#423e50', '#4e383a'][i], borderRadius: 14, padding: 18, minHeight: 114, gap: 15, borderWidth: 1, borderColor: mood === m ? c.accent : 'transparent' }}><Icon name={(['leaf-outline', 'radio-outline', 'sunny-outline', 'moon-outline', 'heart-outline'] as const)[i]!} size={26} color={['#bbd5aa', '#a9d1d1', '#f2cc8e', '#c9bae9', '#e5afb1'][i]} /><Text style={{ color: c.text, fontSize: 12, fontWeight: '500' }}>{m}</Text><View style={{ position: 'absolute', right: 13, bottom: 14 }}><Icon name="shuffle" size={15} color={c.muted} /></View></Pressable>)}</View>{mood && <Button compact onPress={() => setMood(null)}>Clear mood filter</Button>}</View>}
-    <View style={styles.section}>
-      <View style={[styles.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}><View style={{ gap: 8 }}><Text style={{ color: c.text, fontSize: 26, fontWeight: '600', letterSpacing: -0.8 }}>{search ? 'Search your music' : 'Your library'}</Text><Text style={styles.subtitle}>{state.tracks.length} tracks · {Object.keys(state.files).length} on this device</Text></View><Button icon="shuffle" onPress={() => { void p.play(tracks.map(t => t.id), 0, true); }}>Shuffle all</Button></View>
-      <View style={[styles.row, { backgroundColor: c.panel, borderRadius: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: c.border }]}><Icon name="search-outline" color={c.muted} /><TextInput accessibilityLabel="Search local library" placeholder="Search songs, artists, albums…" placeholderTextColor={c.muted} value={query} onChangeText={setQuery} style={{ flex: 1, color: c.text, fontSize: 14, paddingVertical: 15, minHeight: 48 }} /></View>
-      <View style={styles.wrap}>{['All tracks', 'Favorites', 'On this device'].map(f => <Button key={f} compact style={{ backgroundColor: filter === f ? '#d7f79a20' : 'transparent' }} onPress={() => setFilter(f)}>{f}</Button>)}</View>
-      {tracks.length > 0 ? <View><View style={{ padding: 10, borderBottomWidth: 1, borderColor: c.border, flexDirection: 'row' }}><Text style={[styles.label, { width: 30 }]}>#</Text><Text style={[styles.label, { flex: 1 }]}>Track / artist</Text>{width > 750 && <Text style={[styles.label, { width: 170 }]}>Album</Text>}<Text style={[styles.label, { width: 80 }]}>Available</Text><Icon name="time-outline" size={14} color={c.muted} /></View>{tracks.map((t, i) => <TrackRow key={t.id} track={t} index={i} onPlay={() => { void p.play(tracks.map(t => t.id), i); }} onDetails={() => setDetails(t)} />)}</View> : <Empty title={state.tracks.length ? 'No tracks in this mix yet' : 'A home for the music you love'} description={state.tracks.length ? 'Try another search or add mood tags from a track’s details.' : 'Choose audio files from your device. They stay private and ready for your next offline adventure.'} action={<Button primary icon="add" onPress={() => { void importAudio(); }} disabled={busy}>Import music</Button>} />}
-      {Platform.OS === 'web' && <View style={[styles.row, { alignItems: 'flex-start', marginTop: 5 }]}><Icon name="information-circle-outline" color={c.muted} size={16} /><Text style={{ color: c.muted, fontSize: 11, lineHeight: 18, flex: 1 }}>Web files are saved in this browser. Clearing site data or storage eviction removes them. Background playback depends on your browser; native apps offer stronger offline and lock-screen support.</Text></View>}
-    </View>
-    <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: c.border, flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: c.muted, fontSize: 10, letterSpacing: 1.2 }}>LESS SCROLLING. MORE LISTENING.</Text><Text style={{ color: c.teal, fontSize: 10 }}>SoundTrip · your personal soundtrack</Text></View>
-    <Modal visible={!state.settings.onboarded} transparent animationType={state.settings.reducedMotion ? 'none' : 'fade'} onRequestClose={() => update(s => ({ ...s, settings: { ...s.settings, onboarded: true } }))}><View style={{ flex: 1, backgroundColor: '#000000aa', alignItems: 'center', justifyContent: 'center', padding: 24 }}><View style={[styles.card, { maxWidth: 460, width: '100%', padding: 32, gap: 22 }]}><Icon name="pulse" color={c.accent} size={38} /><Text style={styles.title}>Take your music\nwith you.</Text><Text style={styles.subtitle}>Import files you own using the system picker. SoundTrip copies them to this device for offline listening. You choose which files to share.</Text><Text style={styles.subtitle}>Spotify connects through its official sign-in for permitted playlist metadata. Spotify audio plays only through Spotify.</Text><Text style={styles.subtitle}>Account sync shares playlists and metadata. Your audio stays here until you explicitly transfer the original files.</Text><Button primary onPress={() => update(s => ({ ...s, settings: { ...s.settings, onboarded: true } }))}>Make yourself at home</Button><Button onPress={() => { update(s => ({ ...s, settings: { ...s.settings, onboarded: true } })); router.push('/settings'); }}>Read privacy & platform notes</Button></View></View></Modal>
-    {details && <TrackDetails track={state.tracks.find(t => t.id === details.id)!} close={() => setDetails(null)} />}
-  </FadeIn></Shell>;
+  const { state, importAudio, busy, update } = useLibrary();
+  const p = usePlayback();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("All tracks");
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [details, setDetails] = useState<Track | null>(null);
+  const tracks = state.tracks.filter(
+    (t) =>
+      `${t.title} ${t.artist} ${t.album}`
+        .toLowerCase()
+        .includes(query.toLowerCase()) &&
+      (filter !== "Favorites" || t.favorite) &&
+      (filter !== "On this device" || state.files[t.id]) &&
+      (!mood || t.tags.includes(mood)),
+  );
+  return (
+    <Shell>
+      <FadeIn reduce={state.settings.reducedMotion}>
+        {!search && (
+          <View style={styles.section}>
+            <View style={[styles.row, { justifyContent: "space-between" }]}>
+              <Text style={styles.label}>YOUR EVERYDAY ESCAPE</Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>
+                LOCAL FIRST. ALWAYS YOURS.
+              </Text>
+            </View>
+            <LinearGradient
+              colors={["#233b35", "#334a3b", "#535945"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                minHeight: width > 700 ? 268 : 290,
+                borderRadius: 22,
+                padding: width > 700 ? 34 : 24,
+                overflow: "hidden",
+                justifyContent: "center",
+              }}
+            >
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  width: 300,
+                  height: 300,
+                  borderRadius: 180,
+                  right: -30,
+                  top: -45,
+                  borderWidth: 1,
+                  borderColor: "#c2d4a660",
+                }}
+              />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  width: 240,
+                  height: 240,
+                  borderRadius: 140,
+                  right: 0,
+                  top: -15,
+                  borderWidth: 1,
+                  borderColor: "#c2d4a660",
+                }}
+              />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  width: 180,
+                  height: 180,
+                  borderRadius: 100,
+                  right: 30,
+                  top: 15,
+                  borderWidth: 32,
+                  borderColor: "#b8c59b50",
+                  backgroundColor: "#dce8b324",
+                }}
+              />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  width: 450,
+                  height: 90,
+                  right: -70,
+                  bottom: -30,
+                  borderRadius: 120,
+                  backgroundColor: "#122b24a0",
+                  transform: [{ rotate: "-15deg" }],
+                }}
+              />
+              <View style={{ maxWidth: width > 700 ? "75%" : "100%", gap: 17 }}>
+                <Text
+                  style={{
+                    color: "#d8e9cb",
+                    letterSpacing: 2,
+                    fontSize: 10,
+                    fontWeight: "700",
+                  }}
+                >
+                  GOOD MUSIC. NO SIGNAL NEEDED.
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: Platform.OS === "web" ? "Georgia" : undefined,
+                    fontSize: width > 700 ? 48 : 37,
+                    lineHeight: width > 700 ? 52 : 43,
+                    color: "#f5f3df",
+                    letterSpacing: -1.8,
+                  }}
+                >
+                  Your music.{"\n"}Your kind of escape.
+                </Text>
+                <Text
+                  style={{
+                    color: "#cedac5",
+                    fontSize: 13,
+                    lineHeight: 20,
+                    maxWidth: 330,
+                  }}
+                >
+                  The songs you carry, wherever you go. Build a little world of
+                  your own.
+                </Text>
+                <View style={styles.row}>
+                  <Button
+                    primary
+                    icon="add"
+                    onPress={() => {
+                      void importAudio();
+                    }}
+                    disabled={busy}
+                  >
+                    {busy ? "Importing…" : "Import your music"}
+                  </Button>
+                  <Text style={{ fontSize: 11, color: "#d5dfcc" }}>
+                    From your device
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+        {!search && (
+          <View style={styles.section}>
+            <View style={[styles.row, { justifyContent: "space-between" }]}>
+              <Text
+                style={{
+                  fontSize: 22,
+                  color: c.text,
+                  fontWeight: "600",
+                  letterSpacing: -0.6,
+                }}
+              >
+                Find your frequency
+              </Text>
+              <Text style={{ color: c.muted, fontSize: 11 }}>
+                A mood, a moment, a mix
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+              {moods.map((m, i) => (
+                <Pressable
+                  key={m}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Shuffle ${m}`}
+                  onPress={() => {
+                    setMood(mood === m ? null : m);
+                    void p.play(
+                      state.tracks
+                        .filter((t) => t.tags.includes(m))
+                        .map((t) => t.id),
+                      0,
+                      true,
+                    );
+                  }}
+                  style={{
+                    flexBasis:
+                      width > 1100 ? "18%" : width > 600 ? "30%" : "46%",
+                    flexGrow: 1,
+                    backgroundColor: [
+                      "#384741",
+                      "#344545",
+                      "#534637",
+                      "#423e50",
+                      "#4e383a",
+                    ][i],
+                    borderRadius: 14,
+                    padding: 18,
+                    minHeight: 114,
+                    gap: 15,
+                    borderWidth: 1,
+                    borderColor: mood === m ? c.accent : "transparent",
+                  }}
+                >
+                  <Icon
+                    name={
+                      (
+                        [
+                          "leaf-outline",
+                          "radio-outline",
+                          "sunny-outline",
+                          "moon-outline",
+                          "heart-outline",
+                        ] as const
+                      )[i]!
+                    }
+                    size={26}
+                    color={
+                      ["#bbd5aa", "#a9d1d1", "#f2cc8e", "#c9bae9", "#e5afb1"][i]
+                    }
+                  />
+                  <Text
+                    style={{ color: c.text, fontSize: 12, fontWeight: "500" }}
+                  >
+                    {m}
+                  </Text>
+                  <View style={{ position: "absolute", right: 13, bottom: 14 }}>
+                    <Icon name="shuffle" size={15} color={c.muted} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+            {mood && (
+              <Button compact onPress={() => setMood(null)}>
+                Clear mood filter
+              </Button>
+            )}
+          </View>
+        )}
+        <View style={styles.section}>
+          <View
+            style={[
+              styles.row,
+              { justifyContent: "space-between", flexWrap: "wrap" },
+            ]}
+          >
+            <View style={{ gap: 8 }}>
+              <Text
+                style={{
+                  color: c.text,
+                  fontSize: 26,
+                  fontWeight: "600",
+                  letterSpacing: -0.8,
+                }}
+              >
+                {search ? "Search your music" : "Your library"}
+              </Text>
+              <Text style={styles.subtitle}>
+                {state.tracks.length} tracks · {Object.keys(state.files).length}{" "}
+                on this device
+              </Text>
+            </View>
+            <Button
+              icon="shuffle"
+              onPress={() => {
+                void p.play(
+                  tracks.map((t) => t.id),
+                  0,
+                  true,
+                );
+              }}
+            >
+              Shuffle all
+            </Button>
+          </View>
+          <View
+            style={[
+              styles.row,
+              {
+                backgroundColor: c.panel,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                borderWidth: 1,
+                borderColor: c.border,
+              },
+            ]}
+          >
+            <Icon name="search-outline" color={c.muted} />
+            <TextInput
+              accessibilityLabel="Search local library"
+              placeholder="Search songs, artists, albums…"
+              placeholderTextColor={c.muted}
+              value={query}
+              onChangeText={setQuery}
+              style={{
+                flex: 1,
+                color: c.text,
+                fontSize: 14,
+                paddingVertical: 15,
+                minHeight: 48,
+              }}
+            />
+          </View>
+          <View style={styles.wrap}>
+            {["All tracks", "Favorites", "On this device"].map((f) => (
+              <Button
+                key={f}
+                compact
+                style={{
+                  backgroundColor: filter === f ? "#d7f79a20" : "transparent",
+                }}
+                onPress={() => setFilter(f)}
+              >
+                {f}
+              </Button>
+            ))}
+          </View>
+          {tracks.length > 0 ? (
+            <View>
+              <View
+                style={{
+                  padding: 10,
+                  borderBottomWidth: 1,
+                  borderColor: c.border,
+                  flexDirection: "row",
+                }}
+              >
+                <Text style={[styles.label, { width: 30 }]}>#</Text>
+                <Text style={[styles.label, { flex: 1 }]}>Track / artist</Text>
+                {width > 750 && (
+                  <Text style={[styles.label, { width: 170 }]}>Album</Text>
+                )}
+                <Text style={[styles.label, { width: 80 }]}>Available</Text>
+                <Icon name="time-outline" size={14} color={c.muted} />
+              </View>
+              {tracks.map((t, i) => (
+                <TrackRow
+                  key={t.id}
+                  track={t}
+                  index={i}
+                  onPlay={() => {
+                    void p.play(
+                      tracks.map((t) => t.id),
+                      i,
+                    );
+                  }}
+                  onDetails={() => setDetails(t)}
+                />
+              ))}
+            </View>
+          ) : (
+            <Empty
+              title={
+                state.tracks.length
+                  ? "No tracks in this mix yet"
+                  : "A home for the music you love"
+              }
+              description={
+                state.tracks.length
+                  ? "Try another search or add mood tags from a track’s details."
+                  : "Choose audio files from your device. They stay private and ready for your next offline adventure."
+              }
+              action={
+                <Button
+                  primary
+                  icon="add"
+                  onPress={() => {
+                    void importAudio();
+                  }}
+                  disabled={busy}
+                >
+                  Import music
+                </Button>
+              }
+            />
+          )}
+          {Platform.OS === "web" && (
+            <View
+              style={[styles.row, { alignItems: "flex-start", marginTop: 5 }]}
+            >
+              <Icon
+                name="information-circle-outline"
+                color={c.muted}
+                size={16}
+              />
+              <Text
+                style={{
+                  color: c.muted,
+                  fontSize: 11,
+                  lineHeight: 18,
+                  flex: 1,
+                }}
+              >
+                Web files are saved in this browser. Clearing site data or
+                storage eviction removes them. Background playback depends on
+                your browser; native apps offer stronger offline and lock-screen
+                support.
+              </Text>
+            </View>
+          )}
+        </View>
+        <View
+          style={{
+            paddingTop: 10,
+            borderTopWidth: 1,
+            borderColor: c.border,
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ color: c.muted, fontSize: 10, letterSpacing: 1.2 }}>
+            LESS SCROLLING. MORE LISTENING.
+          </Text>
+          <Text style={{ color: c.teal, fontSize: 10 }}>
+            SoundTrip · your personal soundtrack
+          </Text>
+        </View>
+        <Modal
+          visible={!state.settings.onboarded}
+          transparent
+          animationType={state.settings.reducedMotion ? "none" : "fade"}
+          onRequestClose={() =>
+            update((s) => ({
+              ...s,
+              settings: { ...s.settings, onboarded: true },
+            }))
+          }
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#000000aa",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 24,
+            }}
+          >
+            <View
+              style={[
+                styles.card,
+                { maxWidth: 460, width: "100%", padding: 32, gap: 22 },
+              ]}
+            >
+              <Icon name="pulse" color={c.accent} size={38} />
+              <Text style={styles.title}>{"Take your music\nwith you."}</Text>
+              <Text style={styles.subtitle}>
+                Import files you own using the system picker. SoundTrip copies
+                them to this device for offline listening. You choose which
+                files to share.
+              </Text>
+              <Text style={styles.subtitle}>
+                Spotify connects through its official sign-in for permitted
+                playlist metadata. Spotify audio plays only through Spotify.
+              </Text>
+              <Text style={styles.subtitle}>
+                Account sync shares playlists and metadata. Your audio stays
+                here until you explicitly transfer the original files.
+              </Text>
+              <Button
+                primary
+                onPress={() =>
+                  update((s) => ({
+                    ...s,
+                    settings: { ...s.settings, onboarded: true },
+                  }))
+                }
+              >
+                Make yourself at home
+              </Button>
+              <Button
+                onPress={() => {
+                  update((s) => ({
+                    ...s,
+                    settings: { ...s.settings, onboarded: true },
+                  }));
+                  router.push("/settings");
+                }}
+              >
+                Read privacy & platform notes
+              </Button>
+            </View>
+          </View>
+        </Modal>
+        {details && (
+          <TrackDetails
+            track={state.tracks.find((t) => t.id === details.id)!}
+            close={() => setDetails(null)}
+          />
+        )}
+      </FadeIn>
+    </Shell>
+  );
 }
-export function TrackRow({ track, index, onPlay, onDetails }: { track: Track; index: number; onPlay: () => void; onDetails?: () => void }) {
-  const { state, patchTrack, importAudio } = useLibrary(); const p = usePlayback(); const { width } = useWindowDimensions(); const active = p.track?.id === track.id;
-  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 80, paddingHorizontal: 10, borderBottomWidth: 1, borderColor: '#30373580', backgroundColor: active ? '#d7f79a08' : 'transparent' }}><Text style={{ color: active ? c.accent : c.muted, width: 20, fontSize: 12 }}>{active && p.playing ? '♫' : index + 1}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Play ${track.title} by ${track.artist}`} onPress={onPlay} style={[styles.row, { flex: 1, minWidth: 0, minHeight: 56 }]}><Artwork track={track} size={46} /><View style={{ flex: 1 }}><Text numberOfLines={1} style={{ color: active ? c.accent : c.text, fontWeight: '500', fontSize: 13 }}>{track.title}</Text><Text numberOfLines={1} style={{ color: c.muted, fontSize: 11, marginTop: 6 }}>{track.artist}</Text></View></Pressable>{width > 750 && <Text numberOfLines={1} style={{ width: 145, color: c.muted, fontSize: 12 }}>{track.album}</Text>}{state.files[track.id] ? <Icon name="checkmark-circle-outline" color={c.teal} size={18} /> : <Button compact label={`Relink ${track.title}`} onPress={() => { void importAudio(track.id); }}>Relink</Button>}{width > 700 && <Text style={{ color: c.muted, fontSize: 11, width: 36 }}>{clock(track.duration)}</Text>}<Button compact style={{ backgroundColor: 'transparent' }} icon={track.favorite ? 'heart' : 'heart-outline'} label={`${track.favorite ? 'Unfavorite' : 'Favorite'} ${track.title}`} onPress={() => patchTrack(track.id, { favorite: !track.favorite })} />{onDetails && <Button compact style={{ backgroundColor: 'transparent' }} icon="ellipsis-horizontal" label={`Details for ${track.title}`} onPress={onDetails} />}</View>;
+export function TrackRow({
+  track,
+  index,
+  onPlay,
+  onDetails,
+}: {
+  track: Track;
+  index: number;
+  onPlay: () => void;
+  onDetails?: () => void;
+}) {
+  const { state, patchTrack, importAudio } = useLibrary();
+  const p = usePlayback();
+  const { width } = useWindowDimensions();
+  const active = p.track?.id === track.id;
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        minHeight: 80,
+        paddingHorizontal: 10,
+        borderBottomWidth: 1,
+        borderColor: "#30373580",
+        backgroundColor: active ? "#d7f79a08" : "transparent",
+      }}
+    >
+      <Text
+        style={{ color: active ? c.accent : c.muted, width: 20, fontSize: 12 }}
+      >
+        {active && p.playing ? "♫" : index + 1}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Play ${track.title} by ${track.artist}`}
+        onPress={onPlay}
+        style={[styles.row, { flex: 1, minWidth: 0, minHeight: 56 }]}
+      >
+        <Artwork track={track} size={46} />
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: active ? c.accent : c.text,
+              fontWeight: "500",
+              fontSize: 13,
+            }}
+          >
+            {track.title}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ color: c.muted, fontSize: 11, marginTop: 6 }}
+          >
+            {track.artist}
+          </Text>
+        </View>
+      </Pressable>
+      {width > 750 && (
+        <Text
+          numberOfLines={1}
+          style={{ width: 145, color: c.muted, fontSize: 12 }}
+        >
+          {track.album}
+        </Text>
+      )}
+      {state.files[track.id] ? (
+        <Icon name="checkmark-circle-outline" color={c.teal} size={18} />
+      ) : (
+        <Button
+          compact
+          label={`Relink ${track.title}`}
+          onPress={() => {
+            void importAudio(track.id);
+          }}
+        >
+          Relink
+        </Button>
+      )}
+      {width > 700 && (
+        <Text style={{ color: c.muted, fontSize: 11, width: 36 }}>
+          {clock(track.duration)}
+        </Text>
+      )}
+      <Button
+        compact
+        style={{ backgroundColor: "transparent" }}
+        icon={track.favorite ? "heart" : "heart-outline"}
+        label={`${track.favorite ? "Unfavorite" : "Favorite"} ${track.title}`}
+        onPress={() => patchTrack(track.id, { favorite: !track.favorite })}
+      />
+      {onDetails && (
+        <Button
+          compact
+          style={{ backgroundColor: "transparent" }}
+          icon="ellipsis-horizontal"
+          label={`Details for ${track.title}`}
+          onPress={onDetails}
+        />
+      )}
+    </View>
+  );
 }
 function TrackDetails({ track, close }: { track: Track; close: () => void }) {
-  const { state, patchTrack, savePlaylist, importAudio } = useLibrary(); const [title, setTitle] = useState(track.title); const [artist, setArtist] = useState(track.artist); const [album, setAlbum] = useState(track.album);
-  return <Modal transparent visible animationType={state.settings.reducedMotion ? 'none' : 'fade'} onRequestClose={close}><View style={{ flex: 1, backgroundColor: '#000000aa', justifyContent: 'center', alignItems: 'center', padding: 24 }}><View style={[styles.card, { width: '100%', maxWidth: 480 }]}><View style={[styles.row, { justifyContent: 'space-between' }]}><Text style={{ color: c.text, fontSize: 22 }}>Make it yours</Text><Button compact icon="close" label="Close track details" onPress={close} /></View><TextInput accessibilityLabel="Track title" style={styles.input} value={title} onChangeText={setTitle} /><TextInput accessibilityLabel="Artist" style={styles.input} value={artist} onChangeText={setArtist} /><TextInput accessibilityLabel="Album" style={styles.input} value={album} onChangeText={setAlbum} /><Text style={styles.label}>Mood tags</Text><View style={styles.wrap}>{moods.map(m => <Button key={m} compact primary={track.tags.includes(m)} onPress={() => patchTrack(track.id, { tags: track.tags.includes(m) ? track.tags.filter(t => t !== m) : [...track.tags, m] })}>{m}</Button>)}</View><Text style={styles.label}>Add to a playlist</Text><View style={styles.wrap}>{state.playlists.filter(p => !p.deleted).map(p => <Button compact key={p.id} disabled={p.trackIds.includes(track.id)} onPress={() => savePlaylist({ ...p, trackIds: [...p.trackIds, track.id] })}>{p.name}</Button>)}{!state.playlists.filter(p => !p.deleted).length && <Text style={styles.subtitle}>Create a playlist from the Playlists screen first.</Text>}</View>{!state.files[track.id] && <Button icon="link-outline" onPress={() => { void importAudio(track.id); }}>Relink original audio file</Button>}<Button primary onPress={() => { if (!title.trim()) return; patchTrack(track.id, { title: title.trim(), artist: artist.trim() || 'Unknown artist', album: album.trim() || 'Local collection' }); close(); }}>Save details</Button></View></View></Modal>;
+  const { state, patchTrack, savePlaylist, importAudio } = useLibrary();
+  const [title, setTitle] = useState(track.title);
+  const [artist, setArtist] = useState(track.artist);
+  const [album, setAlbum] = useState(track.album);
+  return (
+    <Modal
+      transparent
+      visible
+      animationType={state.settings.reducedMotion ? "none" : "fade"}
+      onRequestClose={close}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000000aa",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
+        <View style={[styles.card, { width: "100%", maxWidth: 480 }]}>
+          <View style={[styles.row, { justifyContent: "space-between" }]}>
+            <Text style={{ color: c.text, fontSize: 22 }}>Make it yours</Text>
+            <Button
+              compact
+              icon="close"
+              label="Close track details"
+              onPress={close}
+            />
+          </View>
+          <TextInput
+            accessibilityLabel="Track title"
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+          />
+          <TextInput
+            accessibilityLabel="Artist"
+            style={styles.input}
+            value={artist}
+            onChangeText={setArtist}
+          />
+          <TextInput
+            accessibilityLabel="Album"
+            style={styles.input}
+            value={album}
+            onChangeText={setAlbum}
+          />
+          <Text style={styles.label}>Mood tags</Text>
+          <View style={styles.wrap}>
+            {moods.map((m) => (
+              <Button
+                key={m}
+                compact
+                primary={track.tags.includes(m)}
+                onPress={() =>
+                  patchTrack(track.id, {
+                    tags: track.tags.includes(m)
+                      ? track.tags.filter((t) => t !== m)
+                      : [...track.tags, m],
+                  })
+                }
+              >
+                {m}
+              </Button>
+            ))}
+          </View>
+          <Text style={styles.label}>Add to a playlist</Text>
+          <View style={styles.wrap}>
+            {state.playlists
+              .filter((p) => !p.deleted)
+              .map((p) => (
+                <Button
+                  compact
+                  key={p.id}
+                  disabled={p.trackIds.includes(track.id)}
+                  onPress={() =>
+                    savePlaylist({ ...p, trackIds: [...p.trackIds, track.id] })
+                  }
+                >
+                  {p.name}
+                </Button>
+              ))}
+            {!state.playlists.filter((p) => !p.deleted).length && (
+              <Text style={styles.subtitle}>
+                Create a playlist from the Playlists screen first.
+              </Text>
+            )}
+          </View>
+          {!state.files[track.id] && (
+            <Button
+              icon="link-outline"
+              onPress={() => {
+                void importAudio(track.id);
+              }}
+            >
+              Relink original audio file
+            </Button>
+          )}
+          <Button
+            primary
+            onPress={() => {
+              if (!title.trim()) return;
+              patchTrack(track.id, {
+                title: title.trim(),
+                artist: artist.trim() || "Unknown artist",
+                album: album.trim() || "Local collection",
+              });
+              close();
+            }}
+          >
+            Save details
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
 }

@@ -1,13 +1,16 @@
 node_modules/
 .expo/
 dist/
+dist-native/
 web-build/
 android/
 ios/
 .env
 .env.local
 .neon
+.local/
 *.db*
 coverage/
 test-results/
 playwright-report/
+test-results-audit.json

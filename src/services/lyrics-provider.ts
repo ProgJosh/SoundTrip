@@ -5,6 +5,10 @@ export interface LyricsProvider {
   licenseUrl: string;
   cacheSeconds: number; // 0 means do not persist the response
   attribution: string;
-  fetch(input: { title: string; artist: string; duration: number }): Promise<{ lrc?: string; text?: string } | null>;
+  fetch(input: {
+    title: string;
+    artist: string;
+    duration: number;
+  }): Promise<{ lrc?: string; text?: string } | null>;
 }
 export const lyricsProviders: readonly LyricsProvider[] = [];

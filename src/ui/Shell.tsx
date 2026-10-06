@@ -1,43 +1,494 @@
-import React from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { Link, usePathname, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Slider from '@react-native-community/slider';
-import { useLibrary } from '../state/Library';
-import { usePlayback } from '../state/Playback';
-import { clock } from '../core/model';
-import { Artwork, Button, Icon, IconName } from './kit';
-import { c, styles } from './theme';
-const navigation: { href: string; title: string; icon: IconName }[] = [{ href: '/', title: 'Your library', icon: 'albums-outline' }, { href: '/search', title: 'Search', icon: 'search-outline' }, { href: '/playlists', title: 'Playlists', icon: 'grid-outline' }, { href: '/spotify', title: 'Spotify connection', icon: 'link-outline' }];
+import React from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { Link, usePathname, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Slider from "./Slider";
+import { useLibrary } from "../state/Library";
+import { usePlayback } from "../state/Playback";
+import { clock } from "../core/model";
+import { Artwork, Button, Icon, IconName } from "./kit";
+import { c, styles } from "./theme";
+const navigation: { href: string; title: string; icon: IconName }[] = [
+  { href: "/", title: "Your library", icon: "albums-outline" },
+  { href: "/search", title: "Search", icon: "search-outline" },
+  { href: "/playlists", title: "Playlists", icon: "grid-outline" },
+  { href: "/spotify", title: "Spotify connection", icon: "link-outline" },
+];
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { width } = useWindowDimensions(); const desktop = width >= 900; const path = usePathname(); const router = useRouter(); const insets = useSafeAreaInsets(); const { state, ready, error, setError, busy, importAudio } = useLibrary(); const p = usePlayback();
-  return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
-    <View style={{ flex: 1, flexDirection: 'row' }}>
-      {desktop && <View style={{ width: 222, borderRightWidth: 1, borderColor: c.border, padding: 24, gap: 36 }}>
-        <Link href="/" accessibilityLabel="SoundTrip home"><View style={styles.row}><View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}><Icon name="pulse" color={c.bg} /></View><Text style={{ color: c.text, fontSize: 21, fontWeight: '700', letterSpacing: -0.8 }}>soundtrip<Text style={{ color: c.accent }}>.</Text></Text></View></Link>
-        <View style={{ gap: 6 }}><Text style={[styles.label, { marginBottom: 12 }]}>Make yourself at home</Text>{navigation.map(n => <Pressable key={n.href} accessibilityRole="link" onPress={() => router.push(n.href as '/')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: path === n.href ? '#d7f79a12' : 'transparent', padding: 12, minHeight: 48, borderRadius: 10 }}><Icon name={n.icon} color={path === n.href ? c.accent : c.muted} /><Text style={{ color: path === n.href ? c.accent : c.muted, fontSize: 13, fontWeight: '500' }}>{n.title}</Text></Pressable>)}</View>
-        <View style={{ gap: 16 }}><Text style={styles.label}>Your collections</Text>{state.playlists.filter(p => !p.deleted).slice(0, 5).map(p => <Pressable key={p.id} onPress={() => router.push({ pathname: '/playlists', params: { id: p.id } })} accessibilityRole="link" style={{ minHeight: 44, justifyContent: 'center' }}><Text numberOfLines={1} style={{ color: c.muted }}>{p.name}</Text></Pressable>)}<Pressable onPress={() => router.push('/playlists')} accessibilityRole="button" style={[styles.row, { minHeight: 44 }]}><Icon name="add" color={c.teal} /><Text style={{ color: c.teal }}>Create a playlist</Text></Pressable></View>
-        <View style={{ flex: 1 }} /><View style={{ gap: 12, paddingTop: 20, borderTopWidth: 1, borderColor: c.border }}><Text style={{ color: c.accent, fontSize: 12 }}>●  Made for offline listening</Text><Text style={{ color: c.muted, fontSize: 11, lineHeight: 18 }}>Your files. Your space.\nTake the long way home.</Text><Button icon="settings-outline" onPress={() => router.push('/settings')}>Settings</Button></View>
-      </View>}
-      <View style={{ flex: 1 }}>
-        <View style={{ height: desktop ? 78 : 64, paddingHorizontal: desktop ? 36 : 20, borderBottomWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          {desktop ? <Text style={styles.label}>A little space for your soundtrack</Text> : <Text style={{ color: c.text, fontWeight: '700', fontSize: 22, letterSpacing: -1 }}>soundtrip<Text style={{ color: c.accent }}>.</Text></Text>}
-          <View style={styles.row}>{desktop && <Button icon="add" onPress={() => { void importAudio(); }} disabled={busy}>{busy ? 'Importing…' : 'Import music'}</Button>}<Button icon="person-outline" label="Open account" compact onPress={() => router.push('/account')} /></View>
+  const { width } = useWindowDimensions();
+  const desktop = width >= 900;
+  const path = usePathname();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { state, ready, error, setError, busy, importAudio } = useLibrary();
+  const p = usePlayback();
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
+      <View style={{ flex: 1, flexDirection: "row" }}>
+        {desktop && (
+          <View
+            style={{
+              width: 222,
+              borderRightWidth: 1,
+              borderColor: c.border,
+              padding: 24,
+              gap: 36,
+            }}
+          >
+            <Link href="/" accessibilityLabel="SoundTrip home">
+              <View style={styles.row}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    backgroundColor: c.accent,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon name="pulse" color={c.bg} />
+                </View>
+                <Text
+                  style={{
+                    color: c.text,
+                    fontSize: 21,
+                    fontWeight: "700",
+                    letterSpacing: -0.8,
+                  }}
+                >
+                  soundtrip<Text style={{ color: c.accent }}>.</Text>
+                </Text>
+              </View>
+            </Link>
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.label, { marginBottom: 12 }]}>
+                Make yourself at home
+              </Text>
+              {navigation.map((n) => (
+                <Pressable
+                  key={n.href}
+                  accessibilityRole="link"
+                  accessibilityLabel={n.title}
+                  onPress={() => router.push(n.href as "/")}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    backgroundColor:
+                      path === n.href ? "#d7f79a12" : "transparent",
+                    padding: 12,
+                    minHeight: 48,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Icon
+                    name={n.icon}
+                    color={path === n.href ? c.accent : c.muted}
+                  />
+                  <Text
+                    style={{
+                      color: path === n.href ? c.accent : c.muted,
+                      fontSize: 13,
+                      fontWeight: "500",
+                    }}
+                  >
+                    {n.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ gap: 16 }}>
+              <Text style={styles.label}>Your collections</Text>
+              {state.playlists
+                .filter((p) => !p.deleted)
+                .slice(0, 5)
+                .map((p) => (
+                  <Pressable
+                    key={p.id}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/playlists",
+                        params: { id: p.id },
+                      })
+                    }
+                    accessibilityRole="link"
+                    style={{ minHeight: 44, justifyContent: "center" }}
+                  >
+                    <Text numberOfLines={1} style={{ color: c.muted }}>
+                      {p.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              <Pressable
+                onPress={() => router.push("/playlists")}
+                accessibilityRole="button"
+                style={[styles.row, { minHeight: 44 }]}
+              >
+                <Icon name="add" color={c.teal} />
+                <Text style={{ color: c.teal }}>Create a playlist</Text>
+              </Pressable>
+            </View>
+            <View style={{ flex: 1 }} />
+            <View
+              style={{
+                gap: 12,
+                paddingTop: 20,
+                borderTopWidth: 1,
+                borderColor: c.border,
+              }}
+            >
+              <Text style={{ color: c.accent, fontSize: 12 }}>
+                ● Made for offline listening
+              </Text>
+              <Text style={{ color: c.muted, fontSize: 11, lineHeight: 18 }}>
+                {"Your files. Your space.\nTake the long way home."}
+              </Text>
+              <Button
+                icon="settings-outline"
+                onPress={() => router.push("/settings")}
+              >
+                Settings
+              </Button>
+            </View>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <View
+            style={{
+              height: desktop ? 78 : 64,
+              paddingHorizontal: desktop ? 36 : 20,
+              borderBottomWidth: 1,
+              borderColor: c.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {desktop ? (
+              <Text style={styles.label}>
+                A little space for your soundtrack
+              </Text>
+            ) : (
+              <Text
+                style={{
+                  color: c.text,
+                  fontWeight: "700",
+                  fontSize: 22,
+                  letterSpacing: -1,
+                }}
+              >
+                soundtrip<Text style={{ color: c.accent }}>.</Text>
+              </Text>
+            )}
+            <View style={styles.row}>
+              {desktop && (
+                <Button
+                  icon="add"
+                  onPress={() => {
+                    void importAudio();
+                  }}
+                  disabled={busy}
+                >
+                  {busy ? "Importing…" : "Import music"}
+                </Button>
+              )}
+              <Button
+                icon="person-outline"
+                label="Open account"
+                compact
+                onPress={() => router.push("/account")}
+              />
+            </View>
+          </View>
+          {error && (
+            <View
+              accessibilityRole="alert"
+              style={{
+                backgroundColor: "#573831",
+                padding: 14,
+                flexDirection: "row",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ flex: 1, color: "#ffe2d2", fontSize: 13 }}>
+                {error}
+              </Text>
+              <Button
+                compact
+                icon="close"
+                label="Dismiss error"
+                onPress={() => setError(null)}
+              />
+            </View>
+          )}
+          <ScrollView
+            contentContainerStyle={{
+              padding: desktop ? 36 : 20,
+              paddingBottom: 40,
+            }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {ready ? (
+              children
+            ) : (
+              <ActivityIndicator
+                color={c.accent}
+                accessibilityLabel="Loading your library"
+              />
+            )}
+          </ScrollView>
         </View>
-        {error && <View accessibilityRole="alert" style={{ backgroundColor: '#573831', padding: 14, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Text style={{ flex: 1, color: '#ffe2d2', fontSize: 13 }}>{error}</Text><Button compact icon="close" label="Dismiss error" onPress={() => setError(null)} /></View>}
-        <ScrollView contentContainerStyle={{ padding: desktop ? 36 : 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">{ready ? children : <ActivityIndicator color={c.accent} accessibilityLabel="Loading your library" />}</ScrollView>
+        {width >= 1380 && (
+          <View
+            style={{
+              width: 310,
+              borderLeftWidth: 1,
+              borderColor: c.border,
+              padding: 26,
+              gap: 24,
+            }}
+          >
+            <Text style={styles.label}>On your turntable</Text>
+            <Artwork track={p.track} size={258} />
+            <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>
+              {p.track?.title || "Room for a new favorite"}
+            </Text>
+            <Text style={styles.subtitle}>
+              {p.track?.artist ||
+                "Import your music and make this space your own."}
+            </Text>
+            <Button
+              icon="expand-outline"
+              onPress={() => router.push("/now-playing")}
+            >
+              Now playing
+            </Button>
+            <Button icon="list-outline" onPress={() => router.push("/queue")}>
+              Open queue
+            </Button>
+            <View style={{ flex: 1 }} />
+            <Text style={[styles.subtitle, { fontSize: 12 }]}>
+              Local audio stays on this device. Metadata sync never transfers
+              your music files.
+            </Text>
+          </View>
+        )}
       </View>
-      {width >= 1380 && <View style={{ width: 310, borderLeftWidth: 1, borderColor: c.border, padding: 26, gap: 24 }}><Text style={styles.label}>On your turntable</Text><Artwork track={p.track} size={258} /><Text style={{ color: c.text, fontSize: 22, fontWeight: '600' }}>{p.track?.title || 'Room for a new favorite'}</Text><Text style={styles.subtitle}>{p.track?.artist || 'Import your music and make this space your own.'}</Text><Button icon="expand-outline" onPress={() => router.push('/now-playing')}>Now playing</Button><Button icon="list-outline" onPress={() => router.push('/queue')}>Open queue</Button><View style={{ flex: 1 }} /><Text style={[styles.subtitle, { fontSize: 12 }]}>Local audio stays on this device. Metadata sync never transfers your music files.</Text></View>}
+      <MiniPlayer />
+      {!desktop && (
+        <View
+          style={{
+            flexDirection: "row",
+            borderTopWidth: 1,
+            borderColor: c.border,
+            paddingBottom: insets.bottom,
+            backgroundColor: c.panel,
+          }}
+        >
+          {[
+            ...navigation.slice(0, 3),
+            {
+              href: "/settings",
+              title: "Settings",
+              icon: "settings-outline" as IconName,
+            },
+          ].map((n) => (
+            <Pressable
+              key={n.href}
+              accessibilityRole="link"
+              accessibilityLabel={n.title}
+              onPress={() => router.push(n.href as "/")}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+                minHeight: 62,
+              }}
+            >
+              <Icon
+                name={n.icon}
+                color={path === n.href ? c.accent : c.muted}
+              />
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: path === n.href ? c.accent : c.muted,
+                }}
+              >
+                {n.title.replace("Your ", "")}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
-    <MiniPlayer />
-    {!desktop && <View style={{ flexDirection: 'row', borderTopWidth: 1, borderColor: c.border, paddingBottom: insets.bottom, backgroundColor: c.panel }}>{[...navigation.slice(0, 3), { href: '/settings', title: 'Settings', icon: 'settings-outline' as IconName }].map(n => <Pressable key={n.href} accessibilityRole="link" accessibilityLabel={n.title} onPress={() => router.push(n.href as '/')} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 62 }}><Icon name={n.icon} color={path === n.href ? c.accent : c.muted} /><Text style={{ fontSize: 10, color: path === n.href ? c.accent : c.muted }}>{n.title.replace('Your ', '')}</Text></Pressable>)}</View>}
-  </View>;
+  );
 }
 export function MiniPlayer() {
-  const p = usePlayback(); const { state } = useLibrary(); const router = useRouter(); const { width } = useWindowDimensions();
-  return <View style={{ borderTopWidth: 1, borderColor: c.border, backgroundColor: '#1c2220', paddingHorizontal: width > 900 ? 28 : 14, paddingVertical: 12, flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Open now playing" onPress={() => router.push('/now-playing')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}><Artwork track={p.track} size={48} /><View style={{ flex: 1 }}><Text numberOfLines={1} style={{ color: c.text, fontWeight: '600', fontSize: 13 }}>{p.track?.title || 'Your soundtrack starts here'}</Text><Text numberOfLines={1} style={{ color: c.muted, fontSize: 11, marginTop: 5 }}>{p.track?.artist || 'Import a local audio file'}</Text></View></Pressable>
-    <View style={{ alignItems: 'center', gap: 3, flex: width > 900 ? 2 : undefined }}><View style={[styles.row, { gap: width > 700 ? 14 : 4 }]}>{width > 700 && <Button compact icon="shuffle" label={`Shuffle ${state.queue.shuffle ? 'on' : 'off'}`} style={{ backgroundColor: 'transparent' }} onPress={p.toggleShuffle} />}<Button compact icon="play-skip-back" label="Previous track" style={{ backgroundColor: 'transparent' }} onPress={() => p.skip(-1)} /><Button compact primary icon={p.playing ? 'pause' : 'play'} label={p.playing ? 'Pause' : 'Play'} onPress={p.toggle} /><Button compact icon="play-skip-forward" label="Next track" style={{ backgroundColor: 'transparent' }} onPress={() => p.skip(1)} />{width > 700 && <Button compact icon="repeat" label={`Repeat ${state.queue.repeat}`} style={{ backgroundColor: 'transparent' }} onPress={p.toggleRepeat} />}</View>{width > 900 && <View style={[styles.row, { width: '100%', gap: 8 }]}><Text style={{ color: c.muted, fontSize: 10 }}>{clock(p.position)}</Text><Slider accessibilityLabel="Playback position" style={{ flex: 1, height: 18 }} minimumValue={0} maximumValue={p.duration || 1} value={p.position} onSlidingComplete={p.seek} minimumTrackTintColor={c.accent} maximumTrackTintColor={c.border} thumbTintColor={c.accent} /><Text style={{ color: c.muted, fontSize: 10 }}>{clock(p.duration)}</Text></View>}</View>
-    {width > 900 && <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}><Button compact icon="text-outline" label="Open lyrics" style={{ backgroundColor: 'transparent' }} onPress={() => router.push('/lyrics')} /><Button compact icon="list-outline" label="Open queue" style={{ backgroundColor: 'transparent' }} onPress={() => router.push('/queue')} />{Platform.OS === 'web' && <Slider accessibilityLabel="Volume" style={{ width: 80 }} minimumValue={0} maximumValue={1} value={state.settings.volume} onValueChange={p.volume} minimumTrackTintColor={c.teal} thumbTintColor={c.teal} />}</View>}
-  </View>;
+  const p = usePlayback();
+  const { state } = useLibrary();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  return (
+    <View
+      style={{
+        borderTopWidth: 1,
+        borderColor: c.border,
+        backgroundColor: "#1c2220",
+        paddingHorizontal: width > 900 ? 28 : 14,
+        paddingVertical: 12,
+        flexDirection: "row",
+        gap: 14,
+        alignItems: "center",
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open now playing"
+        onPress={() => router.push("/now-playing")}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        <Artwork track={p.track} size={48} />
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{ color: c.text, fontWeight: "600", fontSize: 13 }}
+          >
+            {p.track?.title || "Your soundtrack starts here"}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ color: c.muted, fontSize: 11, marginTop: 5 }}
+          >
+            {p.track?.artist || "Import a local audio file"}
+          </Text>
+        </View>
+      </Pressable>
+      <View
+        style={{
+          alignItems: "center",
+          gap: 3,
+          flex: width > 900 ? 2 : undefined,
+        }}
+      >
+        <View style={[styles.row, { gap: width > 700 ? 14 : 4 }]}>
+          {width > 700 && (
+            <Button
+              compact
+              icon="shuffle"
+              label={`Shuffle ${state.queue.shuffle ? "on" : "off"}`}
+              style={{ backgroundColor: "transparent" }}
+              onPress={p.toggleShuffle}
+            />
+          )}
+          <Button
+            compact
+            icon="play-skip-back"
+            label="Previous track"
+            style={{ backgroundColor: "transparent" }}
+            onPress={() => p.skip(-1)}
+          />
+          <Button
+            compact
+            primary
+            icon={p.playing ? "pause" : "play"}
+            label={p.playing ? "Pause" : "Play"}
+            onPress={p.toggle}
+          />
+          <Button
+            compact
+            icon="play-skip-forward"
+            label="Next track"
+            style={{ backgroundColor: "transparent" }}
+            onPress={() => p.skip(1)}
+          />
+          {width > 700 && (
+            <Button
+              compact
+              icon="repeat"
+              label={`Repeat ${state.queue.repeat}`}
+              style={{ backgroundColor: "transparent" }}
+              onPress={p.toggleRepeat}
+            />
+          )}
+        </View>
+        {width > 900 && (
+          <View style={[styles.row, { width: "100%", gap: 8 }]}>
+            <Text style={{ color: c.muted, fontSize: 10 }}>
+              {clock(p.position)}
+            </Text>
+            <Slider
+              accessibilityLabel="Playback position"
+              accessibilityValue={{ text: clock(p.position) }}
+              style={{ flex: 1, height: 18 }}
+              minimumValue={0}
+              maximumValue={p.duration || 1}
+              value={p.position}
+              onSlidingComplete={p.seek}
+              minimumTrackTintColor={c.accent}
+              maximumTrackTintColor={c.border}
+              thumbTintColor={c.accent}
+            />
+            <Text style={{ color: c.muted, fontSize: 10 }}>
+              {clock(p.duration)}
+            </Text>
+          </View>
+        )}
+      </View>
+      {width > 900 && (
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            gap: 10,
+          }}
+        >
+          <Button
+            compact
+            icon="text-outline"
+            label="Open lyrics"
+            style={{ backgroundColor: "transparent" }}
+            onPress={() => router.push("/lyrics")}
+          />
+          <Button
+            compact
+            icon="list-outline"
+            label="Open queue"
+            style={{ backgroundColor: "transparent" }}
+            onPress={() => router.push("/queue")}
+          />
+          {Platform.OS === "web" && (
+            <Slider
+              accessibilityLabel="Volume"
+              style={{ width: 80 }}
+              minimumValue={0}
+              maximumValue={1}
+              value={state.settings.volume}
+              onValueChange={p.volume}
+              minimumTrackTintColor={c.teal}
+              thumbTintColor={c.teal}
+            />
+          )}
+        </View>
+      )}
+    </View>
+  );
 }

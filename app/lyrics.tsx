@@ -1,19 +1,215 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useLibrary } from '../src/state/Library';
-import { usePlayback } from '../src/state/Playback';
-import { activeLyric, parseLrc, serializeLrc, timestamp } from '../src/core/lyrics';
-import { pickLyrics } from '../src/services/files';
-import { Shell } from '../src/ui/Shell';
-import { Button, Empty } from '../src/ui/kit';
-import { c, styles } from '../src/ui/theme';
+import React, { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useLibrary } from "../src/state/Library";
+import { usePlayback } from "../src/state/Playback";
+import {
+  activeLyric,
+  parseLrc,
+  serializeLrc,
+  timestamp,
+} from "../src/core/lyrics";
+import { pickLyrics } from "../src/services/files";
+import { Shell } from "../src/ui/Shell";
+import { Button, Empty } from "../src/ui/kit";
+import { c, styles } from "../src/ui/theme";
 export default function Lyrics() {
-  const p = usePlayback(); const { state, patchTrack, setError } = useLibrary(); const [editing, setEditing] = useState(false); const [draft, setDraft] = useState(''); const [lineText, setLineText] = useState(''); const scroll = useRef<ScrollView>(null); const positions = useRef<Record<number, number>>({});
-  const lines = parseLrc(p.track?.lyrics || ''); const active = activeLyric(lines, p.position);
-  useEffect(() => { scroll.current?.scrollTo({ y: Math.max(0, (positions.current[active] || 0) - 120), animated: !state.settings.reducedMotion }); }, [active, state.settings.reducedMotion]);
-  useEffect(() => { setEditing(false); positions.current = {}; }, [p.track?.id]);
-  async function importLrc() { try { const lrc = await pickLyrics(); if (lrc === null || !p.track) return; if (!parseLrc(lrc).length) throw new Error('No valid [mm:ss.xx] lyric timestamps found.'); patchTrack(p.track.id, { lyrics: lrc }); } catch (e) { setError((e as Error).message); } }
-  return <Shell><View style={[styles.section, { maxWidth: 760, width: '100%', alignSelf: 'center' }]}><Text style={styles.label}>THE WORDS THAT STAY WITH YOU</Text><Text style={styles.title}>{p.track?.title || 'Local lyrics'}</Text><Text style={styles.subtitle}>{p.track?.artist || 'Play a track to see or add its lyrics.'}</Text>{p.track && <View style={styles.wrap}><Button icon="document-text-outline" onPress={() => { void importLrc(); }}>Import .lrc</Button><Button icon="pencil-outline" onPress={() => { setDraft(p.track?.lyrics || ''); setEditing(!editing); }}>Edit lyric timing</Button></View>}
-    {editing && p.track ? <View style={styles.card}><Text style={styles.subtitle}>Use one [mm:ss.xx] timestamp per line. A positive [offset:500] shifts all lines 500 ms later. These lyrics stay on this device.</Text><TextInput accessibilityLabel="LRC timing editor" style={[styles.input, { minHeight: 220, fontFamily: 'monospace', textAlignVertical: 'top' }]} multiline value={draft} onChangeText={setDraft} placeholder="[00:04.00]Your first lyric line" placeholderTextColor={c.muted} /><View style={styles.row}><TextInput accessibilityLabel="Lyric line to stamp" style={[styles.input, { flex: 1 }]} value={lineText} onChangeText={setLineText} placeholder="Next lyric line" placeholderTextColor={c.muted} /><Button disabled={!lineText.trim()} onPress={() => { setDraft(d => `${d}${d ? '\n' : ''}${timestamp(p.position)}${lineText.trim()}`); setLineText(''); }}>Stamp now</Button></View><View style={styles.wrap}><Button onPress={() => setDraft(serializeLrc(parseLrc(draft).map(l => ({ ...l, time: Math.max(0, l.time - .5) })) ))}>All −0.5s</Button><Button onPress={() => setDraft(serializeLrc(parseLrc(draft).map(l => ({ ...l, time: l.time + .5 })) ))}>All +0.5s</Button><Button primary onPress={() => { if (draft.trim() && !parseLrc(draft).length) { setError('Use valid [mm:ss.xx] timestamps or clear the editor to remove lyrics.'); return; } patchTrack(p.track!.id, { lyrics: draft || undefined }); setEditing(false); }}>Save lyrics</Button></View></View> : lines.length ? <ScrollView ref={scroll} style={{ maxHeight: 440 }} contentContainerStyle={{ paddingVertical: 100, gap: 24 }}>{lines.map((line, i) => <Pressable key={`${line.time}-${i}`} onLayout={event => { positions.current[i] = event.nativeEvent.layout.y; }} accessibilityRole="button" accessibilityLabel={`Seek to lyric ${line.text}`} onPress={() => p.seek(line.time)}><Text style={{ color: i === active ? c.accent : c.muted, fontSize: i === active ? 30 : 26, fontWeight: '600', lineHeight: 38, letterSpacing: -.6 }}>{line.text || '♪'}</Text></Pressable>)}</ScrollView> : p.track?.lyrics ? <View style={styles.card}><Text style={styles.label}>Embedded lyrics · unsynchronized</Text><Text style={[styles.subtitle, { fontSize: 20, lineHeight: 34 }]}>{p.track.lyrics}</Text></View> : <Empty title="The words aren’t here yet" description="Import a local .lrc file or add your own timed lyrics. SoundTrip doesn’t scrape or cache unlicensed lyrics." />}
-  </View></Shell>;
+  const p = usePlayback();
+  const { state, patchTrack, setError } = useLibrary();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [lineText, setLineText] = useState("");
+  const scroll = useRef<ScrollView>(null);
+  const positions = useRef<Record<number, number>>({});
+  const lines = parseLrc(p.track?.lyrics || "");
+  const active = activeLyric(lines, p.position);
+  useEffect(() => {
+    scroll.current?.scrollTo({
+      y: Math.max(0, (positions.current[active] || 0) - 120),
+      animated: !state.settings.reducedMotion,
+    });
+  }, [active, state.settings.reducedMotion]);
+  useEffect(() => {
+    positions.current = {};
+  }, [p.track?.id]);
+  async function importLrc() {
+    try {
+      const lrc = await pickLyrics();
+      if (lrc === null || !p.track) return;
+      if (!parseLrc(lrc).length)
+        throw new Error("No valid [mm:ss.xx] lyric timestamps found.");
+      patchTrack(p.track.id, { lyrics: lrc });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  return (
+    <Shell>
+      <View
+        style={[
+          styles.section,
+          { maxWidth: 760, width: "100%", alignSelf: "center" },
+        ]}
+      >
+        <Text style={styles.label}>THE WORDS THAT STAY WITH YOU</Text>
+        <Text style={styles.title}>{p.track?.title || "Local lyrics"}</Text>
+        <Text style={styles.subtitle}>
+          {p.track?.artist || "Play a track to see or add its lyrics."}
+        </Text>
+        {p.track && (
+          <View style={styles.wrap}>
+            <Button
+              icon="document-text-outline"
+              onPress={() => {
+                void importLrc();
+              }}
+            >
+              Import .lrc
+            </Button>
+            <Button
+              icon="pencil-outline"
+              onPress={() => {
+                setDraft(p.track?.lyrics || "");
+                setEditing(!editing);
+              }}
+            >
+              Edit lyric timing
+            </Button>
+          </View>
+        )}
+        {editing && p.track ? (
+          <View style={styles.card}>
+            <Text style={styles.subtitle}>
+              Use one [mm:ss.xx] timestamp per line. A positive [offset:500]
+              shifts all lines 500 ms later. These lyrics stay on this device.
+            </Text>
+            <TextInput
+              accessibilityLabel="LRC timing editor"
+              style={[
+                styles.input,
+                {
+                  minHeight: 220,
+                  fontFamily: "monospace",
+                  textAlignVertical: "top",
+                },
+              ]}
+              multiline
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="[00:04.00]Your first lyric line"
+              placeholderTextColor={c.muted}
+            />
+            <View style={styles.row}>
+              <TextInput
+                accessibilityLabel="Lyric line to stamp"
+                style={[styles.input, { flex: 1 }]}
+                value={lineText}
+                onChangeText={setLineText}
+                placeholder="Next lyric line"
+                placeholderTextColor={c.muted}
+              />
+              <Button
+                disabled={!lineText.trim()}
+                onPress={() => {
+                  setDraft(
+                    (d) =>
+                      `${d}${d ? "\n" : ""}${timestamp(p.position)}${lineText.trim()}`,
+                  );
+                  setLineText("");
+                }}
+              >
+                Stamp now
+              </Button>
+            </View>
+            <View style={styles.wrap}>
+              <Button
+                onPress={() =>
+                  setDraft(
+                    serializeLrc(
+                      parseLrc(draft).map((l) => ({
+                        ...l,
+                        time: Math.max(0, l.time - 0.5),
+                      })),
+                    ),
+                  )
+                }
+              >
+                All −0.5s
+              </Button>
+              <Button
+                onPress={() =>
+                  setDraft(
+                    serializeLrc(
+                      parseLrc(draft).map((l) => ({
+                        ...l,
+                        time: l.time + 0.5,
+                      })),
+                    ),
+                  )
+                }
+              >
+                All +0.5s
+              </Button>
+              <Button
+                primary
+                onPress={() => {
+                  if (draft.trim() && !parseLrc(draft).length) {
+                    setError(
+                      "Use valid [mm:ss.xx] timestamps or clear the editor to remove lyrics.",
+                    );
+                    return;
+                  }
+                  patchTrack(p.track!.id, { lyrics: draft || undefined });
+                  setEditing(false);
+                }}
+              >
+                Save lyrics
+              </Button>
+            </View>
+          </View>
+        ) : lines.length ? (
+          <ScrollView
+            ref={scroll}
+            style={{ maxHeight: 440 }}
+            contentContainerStyle={{ paddingVertical: 100, gap: 24 }}
+          >
+            {lines.map((line, i) => (
+              <Pressable
+                key={`${line.time}-${i}`}
+                onLayout={(event) => {
+                  positions.current[i] = event.nativeEvent.layout.y;
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Seek to lyric ${line.text}`}
+                onPress={() => p.seek(line.time)}
+              >
+                <Text
+                  style={{
+                    color: i === active ? c.accent : c.muted,
+                    fontSize: i === active ? 30 : 26,
+                    fontWeight: "600",
+                    lineHeight: 38,
+                    letterSpacing: -0.6,
+                  }}
+                >
+                  {line.text || "♪"}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : p.track?.lyrics ? (
+          <View style={styles.card}>
+            <Text style={styles.label}>Embedded lyrics · unsynchronized</Text>
+            <Text style={[styles.subtitle, { fontSize: 20, lineHeight: 34 }]}>
+              {p.track.lyrics}
+            </Text>
+          </View>
+        ) : (
+          <Empty
+            title="The words aren’t here yet"
+            description="Import a local .lrc file or add your own timed lyrics. SoundTrip doesn’t scrape or cache unlicensed lyrics."
+          />
+        )}
+      </View>
+    </Shell>
+  );
 }

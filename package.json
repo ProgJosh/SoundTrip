@@ -11,8 +11,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "tsx --test tests/*.test.ts",
-    "build:web": "expo export --platform web",
-    "api": "tsx server/index.ts"
+    "build:web": "expo export --platform web && node scripts/offline-shell.mjs",
+    "api": "tsx --env-file=.env.local server/index.ts",
+    "preview": "node scripts/preview.mjs",
+    "db:migrate": "tsx --env-file=.env.local server/migrate.ts",
+    "test:web": "playwright test",
+    "build:native": "expo export --platform ios --platform android --output-dir dist-native"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -46,10 +50,17 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.4",
-    "@types/react": "^19.3.0",
+    "@types/react": "~19.2.4",
     "eslint": "^9.39.5",
     "eslint-config-expo": "^57.0.2",
+    "prettier": "^3.9.9",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "decode-uri-component": "0.5.0",
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   }
 }
