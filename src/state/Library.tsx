@@ -168,7 +168,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
           validateAudio(file.bytes, file.name, file.size);
           const hash = await Crypto.digest(
             Crypto.CryptoDigestAlgorithm.SHA256,
-            new Uint8Array(file.bytes).buffer,
+            new Uint8Array(file.bytes),
           );
           const fingerprint = Array.from(new Uint8Array(hash))
             .map((v) => v.toString(16).padStart(2, "0"))
