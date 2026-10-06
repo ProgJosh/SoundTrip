@@ -24,6 +24,8 @@ Spotify describes the official export contents in [Understanding your data](http
 
 The created playlist is a copy. Later changes to export matching do not overwrite your edits; add newly matched songs through ordinary Playlists controls. If audio becomes unavailable, its export link and playlist metadata stay. Relink the audio from its local-library details.
 
+Created local playlists follow the existing 10,000-track limit. Names longer than 120 characters are shortened for the local copy, with a visible notice; the imported snapshot keeps its name.
+
 ## Privacy, refresh and limits
 
 - Playlist names, song/artist/album names, valid Spotify track links where included, and local-track references are kept on the current device. Unrelated account fields and original JSON are not retained in SoundTrip's library. Native temporary picker copies are removed after reading.

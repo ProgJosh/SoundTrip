@@ -32,3 +32,10 @@ Spotify live access remains gated by credentials and current API permissions.
 The API runs locally against Neon; it has not been publicly deployed. iOS device
 checks require macOS/Xcode. Android toolchain/device results are recorded in the
 verification report after the attempted native build completes.
+
+Free-account export checkpoint:
+
+- `a30c113`: bounded official account-data playlist JSON parser, private local snapshots, native/web pickers, duplicate detection and parser/storage tests.
+- `2877b7d`: preview/select/cancel UI, explicit local matching, editable local-playlist copies, missing-file/removal behavior, offline browser verification and user instructions.
+- `cb0bc16`: preserve selected occurrences when repeated exported songs are played or reordered in the queue; final local-player and export browser checks passed together.
+- JDK 17 Android release test builds passed; system-picker import, local matching, playlist creation, offline playback and persistence across relaunch/app update were verified on the Pixel 3a emulator. See `docs/VERIFICATION.md` and `docs/SPOTIFY_EXPORT.md` for coverage and instructions.
