@@ -43,6 +43,24 @@ export type SpotifyPlaylist = {
   entries: SpotifyEntry[];
   importedAt: number;
 };
+export type PlaylistExportEntry = {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  kind: "track" | "local";
+  localFilename?: string;
+  url?: string;
+  localTrackId?: string;
+};
+export type PlaylistExport = {
+  id: string;
+  name: string;
+  entries: PlaylistExportEntry[];
+  skipped: number;
+  importedAt: number;
+  localPlaylistId?: string;
+};
 export type Repeat = "off" | "all" | "one";
 export type Queue = {
   ids: string[];
@@ -57,6 +75,7 @@ export type LocalState = {
   tracks: Track[];
   playlists: Playlist[];
   spotify: SpotifyPlaylist[];
+  playlistExports: PlaylistExport[];
   files: Record<string, string>;
   queue: Queue;
   settings: { onboarded: boolean; volume: number; reducedMotion: boolean };
@@ -77,6 +96,7 @@ export const emptyState = (): LocalState => ({
   tracks: [],
   playlists: [],
   spotify: [],
+  playlistExports: [],
   files: {},
   queue: { ids: [], index: 0, position: 0, shuffle: false, repeat: "off" },
   settings: { onboarded: false, volume: 0.8, reducedMotion: false },
@@ -121,7 +141,9 @@ export function matchLocal(
     (t) =>
       clean(t.title) === clean(entry.title) &&
       clean(t.artist) === clean(entry.artist) &&
-      (!t.duration || Math.abs(t.duration - entry.duration) < 3),
+      (!entry.duration ||
+        !t.duration ||
+        Math.abs(t.duration - entry.duration) < 3),
   );
 }
 export function clock(seconds: number): string {

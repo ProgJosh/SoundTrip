@@ -1,5 +1,6 @@
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
+import { validateExportFiles } from "../core/playlist-export";
 export type PickedFile = {
   name: string;
   size: number;
@@ -52,4 +53,36 @@ export async function pickLyrics(): Promise<string | null> {
   const f = new File(a.uri);
   if (f.size > 1024 * 1024) throw new Error("Lyrics must be under 1 MB.");
   return f.text();
+}
+export async function pickPlaylistExports(): Promise<
+  { name: string; text: string }[]
+> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "*/*",
+    multiple: true,
+    copyToCacheDirectory: true,
+  });
+  if (result.canceled) return [];
+  const files = result.assets.map((a) => ({
+    name: a.name,
+    file: new File(a.uri),
+  }));
+  try {
+    validateExportFiles(
+      files.map((f) => ({ name: f.name, size: f.file.size })),
+    );
+    const values = [];
+    for (const f of files)
+      values.push({ name: f.name, text: await f.file.text() });
+    return values;
+  } finally {
+    for (const f of files) {
+      // Remove only temporary picker copies inside the app's cache, never originals.
+      if (f.file.uri.startsWith(Paths.cache.uri) && f.file.exists) {
+        try {
+          f.file.delete();
+        } catch {}
+      }
+    }
+  }
 }

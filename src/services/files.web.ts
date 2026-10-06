@@ -1,4 +1,5 @@
 import { read, write } from "./storage.web";
+import { validateExportFiles } from "../core/playlist-export";
 export type PickedFile = {
   name: string;
   size: number;
@@ -56,4 +57,14 @@ export async function pickLyrics(): Promise<string | null> {
   if (!file) return null;
   if (file.size > 1024 * 1024) throw new Error("Lyrics must be under 1 MB.");
   return file.text();
+}
+export async function pickPlaylistExports(): Promise<
+  { name: string; text: string }[]
+> {
+  const files = await picker(".json,application/json", true);
+  validateExportFiles(files);
+  const values = [];
+  for (const file of files)
+    values.push({ name: file.name, text: await file.text() });
+  return values;
 }
