@@ -75,6 +75,8 @@ export function Button({
             color: primary ? c.bg : c.text,
             fontWeight: "600",
             fontSize: 13,
+            flexShrink: 1,
+            textAlign: "center",
           }}
         >
           {children}

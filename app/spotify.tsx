@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Image, Linking, Platform, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useLibrary } from "../src/state/Library";
 import { usePlayback } from "../src/state/Playback";
 import { matchLocal } from "../src/core/model";
@@ -17,6 +18,7 @@ import { Shell } from "../src/ui/Shell";
 import { Button, Empty } from "../src/ui/kit";
 import { c, styles } from "../src/ui/theme";
 export default function Spotify() {
+  const router = useRouter();
   const { state, update, setError, checkpoint } = useLibrary();
   const playback = usePlayback();
   const [connected, setConnected] = useState(false);
@@ -79,6 +81,23 @@ export default function Spotify() {
         <Text style={styles.subtitle}>
           Spotify metadata is a reference. Your local audio is what plays here.
         </Text>
+        <View style={styles.card}>
+          <Text style={{ color: c.text, fontSize: 20, fontWeight: "600" }}>
+            Using Spotify Free? Bring your exported playlists.
+          </Text>
+          <Text style={styles.subtitle}>
+            Import playlist JSON from Spotify’s official account-data export.
+            Preview the songs and confirm matching files on your device. No
+            Premium or Spotify connection is needed for a downloaded export.
+          </Text>
+          <Button
+            primary
+            icon="document-text-outline"
+            onPress={() => router.push("/playlist-import")}
+          >
+            Import Spotify export
+          </Button>
+        </View>
         <View style={styles.card}>
           <Text style={styles.subtitle}>
             Connect securely through Spotify’s official authorization. SoundTrip

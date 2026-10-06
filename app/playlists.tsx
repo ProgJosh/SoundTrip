@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Pressable, Text, TextInput, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useLibrary, id } from "../src/state/Library";
 import { usePlayback } from "../src/state/Playback";
 import { Playlist, move } from "../src/core/model";
@@ -9,6 +9,7 @@ import { Artwork, Button, Empty } from "../src/ui/kit";
 import { TrackRow } from "../src/ui/LibraryScreen";
 import { c, styles } from "../src/ui/theme";
 export default function Playlists() {
+  const router = useRouter();
   const { id: selectedId } = useLocalSearchParams<{ id?: string }>();
   const { state, savePlaylist } = useLibrary();
   const p = usePlayback();
@@ -42,9 +43,17 @@ export default function Playlists() {
             <Text style={styles.title}>Made by you.</Text>
             <Text style={styles.subtitle}>A collection for every detour.</Text>
           </View>
-          <Button primary icon="add" onPress={() => edit()}>
-            New playlist
-          </Button>
+          <View style={styles.wrap}>
+            <Button
+              icon="document-text-outline"
+              onPress={() => router.push("/playlist-import")}
+            >
+              Import Spotify export
+            </Button>
+            <Button primary icon="add" onPress={() => edit()}>
+              New playlist
+            </Button>
+          </View>
         </View>
         <View style={styles.wrap}>
           {list.map((v) => (

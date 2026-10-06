@@ -78,7 +78,10 @@ export async function pickPlaylistExports(): Promise<
   } finally {
     for (const f of files) {
       // Remove only temporary picker copies inside the app's cache, never originals.
-      if (f.file.uri.startsWith(Paths.cache.uri) && f.file.exists) {
+      if (
+        f.file.uri.startsWith(`${Paths.cache.uri.replace(/\/$/, "")}/`) &&
+        f.file.exists
+      ) {
         try {
           f.file.delete();
         } catch {}

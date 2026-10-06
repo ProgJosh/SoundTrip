@@ -8,8 +8,9 @@ import {
 } from "../core/playlist-export";
 import { pickPlaylistExports } from "./files";
 
-export async function loadPlaylistExports(): Promise<PlaylistExport[]> {
+export async function loadPlaylistExports(): Promise<PlaylistExport[] | null> {
   const files = await pickPlaylistExports();
+  if (!files.length) return null;
   const playlists: PlaylistExport[] = [];
   let total = 0;
   for (const file of files) {
