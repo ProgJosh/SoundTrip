@@ -2,7 +2,7 @@
 
 SoundTrip's Expo web export is hosted with Cloudflare Workers Static Assets. `wrangler.jsonc` deploys only `dist/`, uses SPA navigation fallback for Expo Router, and serves `/index.html` directly for the offline shell. The account ID is a public deployment identifier, not a credential.
 
-Live app: **[soundtrip.joshua27emmanuel30.workers.dev](https://soundtrip.joshua27emmanuel30.workers.dev)**. Published on 2026-10-06; deployed version `e5c14883-a4a8-4bac-950a-013cca85770c`, from hosting code commit `2cc29a5`.
+Live app: **[soundtrip.joshua27emmanuel30.workers.dev](https://soundtrip.joshua27emmanuel30.workers.dev)**. Updated on 2026-10-06 with SoundTrip website icons; deployed version `ae9ac882-d1fb-43f0-b506-6c032dd6c367`, from code commit `ca6f6e6`.
 
 ## Run and deploy
 
@@ -37,6 +37,8 @@ The new HTTPS origin has its own browser library. The localhost library remains 
 `public/_headers` sets revalidation for HTML, manifest and service-worker updates, and immutable caching for fingerprinted Expo bundles. `public/.assetsignore` excludes source maps and Expo build metadata from upload. The offline-shell generator excludes Cloudflare control files and caches the manifest with the other public app assets. No cross-origin OAuth-breaking opener policy is added.
 
 The website favicon uses SoundTrip's existing lime pulse badge from `assets/soundtrip-icon.png`. `public/icons/` supplies 192px and 512px web app icons, a solid maskable icon and a 180px Apple touch icon. The generated manifest and HTML reference these assets; the offline cache includes them. Icon responses revalidate, and the offline cache version includes asset contents so replacing an icon refreshes cached artwork.
+
+Verified this icon deployment with TypeScript, lint and a Cloudflare production dry run. On the live HTTPS site, all five icon responses matched the production build, returned image content types and revalidation headers, and decoded in an isolated Edge browser after network access was disabled and the app reloaded. Apple touch metadata and image dimensions were checked in the browser; installation on a physical Apple device was not tested.
 
 ## Deployments from Git
 
