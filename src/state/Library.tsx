@@ -15,7 +15,7 @@ import {
   Track,
   SyncChange,
 } from "../core/model";
-import { bytesBase64, readMetadata, validateAudio } from "../core/metadata";
+import { localMedia, readMetadata, validateAudio } from "../core/metadata";
 import { loadState, saveState } from "../services/storage";
 import { keepFile, pickAudio, resolveFile } from "../services/files";
 import { SPOTIFY_METADATA_TTL } from "../core/spotify";
@@ -124,7 +124,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       clearInterval(timer);
       subscription.remove();
     };
-  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready]);
   const patchTrack = (key: string, patch: Partial<Track>) =>
     update((s) => {
       const track = s.tracks.find((t) => t.id === key);
@@ -185,31 +185,32 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
           const uri = await keepFile(key, file);
           const metadata = readMetadata(file.bytes);
           const titleParts = file.name.replace(/\.[^.]+$/, "").split(" - ");
-          const track: Track = old || {
-            id: key,
-            fingerprint,
-            filename: file.name,
-            title:
-              metadata.title ||
-              titleParts.slice(titleParts.length > 1 ? 1 : 0).join(" - "),
-            artist:
-              metadata.artist ||
-              (titleParts.length > 1 ? titleParts[0]! : "Unknown artist"),
-            album: metadata.album || "Local collection",
-            duration: metadata.duration || 0,
-            artwork: metadata.artwork
-              ? `data:${metadata.artwork.mime};base64,${bytesBase64(metadata.artwork.bytes)}`
-              : undefined,
-            lyrics: metadata.lyrics,
-            tags: [] as Mood[],
-            favorite: false,
-            updatedAt: Date.now(),
-          };
+          const track: Track = old
+            ? { ...old, ...localMedia(metadata, old) }
+            : {
+                id: key,
+                fingerprint,
+                filename: file.name,
+                title:
+                  metadata.title ||
+                  titleParts.slice(titleParts.length > 1 ? 1 : 0).join(" - "),
+                artist:
+                  metadata.artist ||
+                  (titleParts.length > 1 ? titleParts[0]! : "Unknown artist"),
+                album: metadata.album || "Local collection",
+                duration: metadata.duration || 0,
+                ...localMedia(metadata),
+                tags: [] as Mood[],
+                favorite: false,
+                updatedAt: Date.now(),
+              };
           update((s) => ({
             ...s,
             tracks: [...s.tracks.filter((t) => t.id !== key), track],
             files: { ...s.files, [key]: uri },
-            outbox: [...s.outbox, change("track", key, syncTrack(track))],
+            outbox: old
+              ? s.outbox
+              : [...s.outbox, change("track", key, syncTrack(track))],
           }));
         } catch (e) {
           failures.push(`${file.name}: ${(e as Error).message}`);

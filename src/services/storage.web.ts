@@ -1,5 +1,13 @@
 import { LocalState } from "../core/model";
+import {
+  LibrarySnapshot,
+  PlaybackSnapshot,
+  libraryChanged,
+  librarySnapshot,
+  restoreSnapshot,
+} from "../core/snapshot";
 let db: Promise<IDBDatabase> | undefined;
+let previous: LibrarySnapshot | undefined;
 export function database(): Promise<IDBDatabase> {
   db ??= new Promise((resolve, reject) => {
     const req = indexedDB.open("soundtrip", 1);
@@ -48,8 +56,44 @@ export async function write(
   });
 }
 export async function loadState(): Promise<LocalState | null> {
-  return (await read<LocalState>("state", "library")) ?? null;
+  const d = await database();
+  return new Promise((resolve, reject) => {
+    const transaction = d.transaction("state");
+    const store = transaction.objectStore("state");
+    const library = store.get("library");
+    const playback = store.get("playback");
+    transaction.oncomplete = () => {
+      try {
+        resolve(
+          library.result
+            ? restoreSnapshot(
+                library.result,
+                playback.result as PlaybackSnapshot | undefined,
+              )
+            : null,
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
+    transaction.onerror = () => reject(transaction.error);
+  });
 }
 export async function saveState(state: LocalState): Promise<void> {
-  return write("state", "library", state);
+  const library = librarySnapshot(state);
+  const dirty = libraryChanged(previous, library);
+  const d = await database();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = d.transaction("state", "readwrite");
+    const store = transaction.objectStore("state");
+    if (dirty) store.put(library, "library");
+    store.put({ queue: state.queue, settings: state.settings }, "playback");
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () =>
+      reject(
+        new Error("Could not save the library. Check your available storage."),
+      );
+    transaction.onabort = () => reject(transaction.error);
+  });
+  previous = library;
 }

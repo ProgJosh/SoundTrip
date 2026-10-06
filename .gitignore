@@ -5,8 +5,8 @@ dist-native/
 web-build/
 android/
 ios/
-.env
-.env.local
+.env*
+!.env.example
 .neon
 .local/
 *.db*

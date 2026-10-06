@@ -14,7 +14,7 @@ import Slider from "./Slider";
 import { useLibrary } from "../state/Library";
 import { usePlayback } from "../state/Playback";
 import { clock } from "../core/model";
-import { Artwork, Button, Icon, IconName } from "./kit";
+import { Artwork, Button, FadeIn, Icon, IconName } from "./kit";
 import { c, styles } from "./theme";
 const navigation: { href: string; title: string; icon: IconName }[] = [
   { href: "/", title: "Your library", icon: "albums-outline" },
@@ -26,6 +26,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { width } = useWindowDimensions();
   const desktop = width >= 900;
   const path = usePathname();
+  const immersive = path === "/now-playing";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { state, ready, error, setError, busy, importAudio } = useLibrary();
@@ -33,7 +34,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
       <View style={{ flex: 1, flexDirection: "row" }}>
-        {desktop && (
+        {desktop && !immersive && (
           <View
             style={{
               width: 222,
@@ -239,7 +240,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             keyboardShouldPersistTaps="handled"
           >
             {ready ? (
-              children
+              <FadeIn key={path} reduce={state.settings.reducedMotion}>
+                {children}
+              </FadeIn>
             ) : (
               <ActivityIndicator
                 color={c.accent}
@@ -248,7 +251,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </ScrollView>
         </View>
-        {width >= 1380 && (
+        {width >= 1380 && !immersive && (
           <View
             style={{
               width: 310,
@@ -284,8 +287,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </View>
         )}
       </View>
-      <MiniPlayer />
-      {!desktop && (
+      {!immersive && <MiniPlayer />}
+      {!desktop && !immersive && (
         <View
           style={{
             flexDirection: "row",

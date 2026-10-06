@@ -29,8 +29,10 @@ export default function NowPlaying() {
               <Button
                 compact
                 icon="chevron-down"
-                label="Back to library"
-                onPress={() => router.push("/")}
+                label="Close now playing"
+                onPress={() =>
+                  router.canGoBack() ? router.back() : router.replace("/")
+                }
               />
               <Text style={styles.label}>PLAYING FROM YOUR DEVICE</Text>
               <Button

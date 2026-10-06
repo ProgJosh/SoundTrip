@@ -117,9 +117,21 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
       const data = (await response.json()) as SyncResponse;
       if (generation !== epoch.current || account.current?.id !== owner) return;
-      update((local) => ({ ...mergeSync(local, data), syncOwner: owner }));
+      let remaining = 0;
+      update((local) => {
+        const merged = mergeSync(local, data);
+        remaining = merged.outbox.length;
+        return { ...merged, syncOwner: owner };
+      });
       await checkpoint();
-      setMessage("Metadata is up to date. Audio stays on each device.");
+      if (remaining || data.rows.length >= 1000) {
+        setMessage(
+          `Metadata batch saved. ${remaining} edits remain; finishing sync.`,
+        );
+        setTimeout(() => {
+          if (generation === epoch.current) void sync();
+        }, 250);
+      } else setMessage("Metadata is up to date. Audio stays on each device.");
     } catch (e) {
       setMessage(
         `${(e as Error).message} Local edits will retry when connected.`,

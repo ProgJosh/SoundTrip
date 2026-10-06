@@ -14,6 +14,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { c, styles } from "./theme";
 import { Track } from "../core/model";
+import { useLibrary } from "../state/Library";
 export type IconName = React.ComponentProps<typeof Ionicons>["name"];
 export const Icon = ({
   name,
@@ -91,16 +92,21 @@ export function Artwork({
   size?: number;
   style?: ViewStyle;
 }) {
-  if (track?.artwork)
+  const { state } = useLibrary();
+  const [failedArtwork, setFailedArtwork] = useState<string>();
+  if (track?.artwork && failedArtwork !== track.artwork)
     return (
-      <Image
-        accessibilityLabel={`${track.album} artwork`}
-        source={{ uri: track.artwork }}
-        style={[
-          { width: size, height: size, borderRadius: size > 100 ? 20 : 10 },
-          style as ImageStyle,
-        ]}
-      />
+      <FadeIn key={track.id} reduce={state.settings.reducedMotion}>
+        <Image
+          accessibilityLabel={`${track.album} artwork`}
+          source={{ uri: track.artwork }}
+          onError={() => setFailedArtwork(track.artwork)}
+          style={[
+            { width: size, height: size, borderRadius: size > 100 ? 20 : 10 },
+            style as ImageStyle,
+          ]}
+        />
+      </FadeIn>
     );
   const colors: readonly [string, string] = track
     ? ([
@@ -111,57 +117,59 @@ export function Artwork({
       ][(track.title.charCodeAt(0) || 0) % 4]! as [string, string])
     : ["#94b8a1", "#354d49"];
   return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size > 100 ? 20 : 10,
-          overflow: "hidden",
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        style,
-      ]}
-    >
-      <View
-        style={{
-          width: size * 0.7,
-          height: size * 0.7,
-          borderRadius: size,
-          borderWidth: size * 0.12,
-          borderColor: "#11191880",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+    <FadeIn key={track?.id || "empty"} reduce={state.settings.reducedMotion}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size > 100 ? 20 : 10,
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
+          },
+          style,
+        ]}
       >
         <View
           style={{
-            width: size * 0.15,
-            height: size * 0.15,
+            width: size * 0.7,
+            height: size * 0.7,
             borderRadius: size,
-            backgroundColor: "#f4ecd8b0",
-          }}
-        />
-      </View>
-      {size > 100 && (
-        <Text
-          style={{
-            position: "absolute",
-            bottom: 20,
-            left: 22,
-            color: "#ffffffcc",
-            fontSize: 12,
-            letterSpacing: 3,
+            borderWidth: size * 0.12,
+            borderColor: "#11191880",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          SOUNDTRIP / LOCAL
-        </Text>
-      )}
-    </LinearGradient>
+          <View
+            style={{
+              width: size * 0.15,
+              height: size * 0.15,
+              borderRadius: size,
+              backgroundColor: "#f4ecd8b0",
+            }}
+          />
+        </View>
+        {size > 100 && (
+          <Text
+            style={{
+              position: "absolute",
+              bottom: 20,
+              left: 22,
+              color: "#ffffffcc",
+              fontSize: 12,
+              letterSpacing: 3,
+            }}
+          >
+            SOUNDTRIP / LOCAL
+          </Text>
+        )}
+      </LinearGradient>
+    </FadeIn>
   );
 }
 export function Empty({

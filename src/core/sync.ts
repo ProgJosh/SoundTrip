@@ -15,6 +15,12 @@ export function mergeSync(
   state: LocalState,
   response: SyncResponse,
 ): LocalState {
+  if (
+    !response.rows.length &&
+    !response.acknowledged.length &&
+    response.cursor <= state.cursor
+  )
+    return state;
   const next = {
     ...state,
     tracks: [...state.tracks],

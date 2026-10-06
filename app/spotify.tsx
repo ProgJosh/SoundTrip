@@ -94,8 +94,8 @@ export default function Spotify() {
           </Text>
           {!spotifyConfigured && (
             <Text style={{ color: c.orange, fontSize: 13 }}>
-              Spotify setup is not configured. Add the public client ID and
-              registered redirect URI to enable this connection.
+              Spotify connection is unavailable in this build. Your local
+              library is ready for offline listening.
             </Text>
           )}
           <View style={styles.wrap}>

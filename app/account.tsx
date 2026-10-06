@@ -74,8 +74,8 @@ export default function Account() {
           </Text>
           {!accountConfigured && (
             <Text style={{ color: c.orange, lineHeight: 22 }}>
-              Account services are not configured. Add the Managed Auth URL and
-              metadata API URL. Your local library works without an account.
+              Account sync is unavailable in this build. You can listen, make
+              playlists, and save your library on this device.
             </Text>
           )}
           {account.user ? (

@@ -132,7 +132,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded, status.didJustFinish, status.duration, trackId]);
   useEffect(() => {
-    player.volume = state.settings.volume;
+    player.volume = Platform.OS === "web" ? state.settings.volume : 1;
   }, [player, state.settings.volume]);
   useEffect(() => {
     if (status.error) {

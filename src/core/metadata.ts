@@ -181,3 +181,18 @@ export function bytesBase64(bytes: Uint8Array): string {
   }
   return out;
 }
+// Restoring a transferred file keeps user-edited local lyrics/artwork and fills
+// media intentionally excluded from cloud metadata.
+export function localMedia(
+  metadata: Metadata,
+  previous?: { artwork?: string; lyrics?: string },
+) {
+  return {
+    artwork:
+      previous?.artwork ??
+      (metadata.artwork
+        ? `data:${metadata.artwork.mime};base64,${bytesBase64(metadata.artwork.bytes)}`
+        : undefined),
+    lyrics: previous?.lyrics ?? metadata.lyrics,
+  };
+}
