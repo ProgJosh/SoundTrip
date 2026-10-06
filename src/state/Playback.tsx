@@ -171,7 +171,12 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const ordered = shuffled ? shuffle(available) : available;
-    const selected = shuffled ? 0 : Math.max(0, ordered.indexOf(ids[start]!));
+    // Map the selected occurrence through the availability filter; repeated songs
+    // must not jump back to their first occurrence in the playlist.
+    const selected =
+      !shuffled && state.files[ids[start] || ""]
+        ? ids.slice(0, start).filter((key) => state.files[key]).length
+        : 0;
     shouldPlay.current = true;
     if (active.current === ordered[selected]) {
       await player.seekTo(0);

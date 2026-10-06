@@ -130,6 +130,19 @@ test("official export preview, matching, duplicates, offline persistence and rem
   ).toBeVisible();
   await button("Create local playlist").click();
   await expect(button("Open local playlist")).toBeVisible();
+  await button("Open local playlist").click();
+  await button("Play Morning Drift by SoundTrip").nth(1).click();
+  await button("Open now playing").click();
+  await button("Up next").click();
+  await expect(page.getByText("PLAYED", { exact: true })).toBeVisible();
+  await expect(page.getByText("NOW PLAYING", { exact: true })).toBeVisible();
+  await button("Move queue track 2 up").click();
+  await expect(page.getByText("PLAYED", { exact: true })).toHaveCount(0);
+  await button("Move queue track 1 down").click();
+  await expect(page.getByText("PLAYED", { exact: true })).toBeVisible();
+  await button("Pause").click();
+  await page.getByRole("link", { name: "Playlists", exact: true }).click();
+  await button("Import Spotify export").click();
   await choose(exportFile);
   await expect(
     page.getByText("3 songs · Already imported", { exact: true }),
@@ -140,9 +153,11 @@ test("official export preview, matching, duplicates, offline persistence and rem
   await button("Import selected playlists (1)").click();
   await button("Open imported playlist Offline memories").click();
   await expect(
-    page.getByText("3 songs · 2 confirmed files · 2 available offline", {
-      exact: true,
-    }),
+    page
+      .getByText("3 songs · 2 confirmed files · 2 available offline", {
+        exact: true,
+      })
+      .filter({ visible: true }),
   ).toBeVisible();
   await choose({
     name: "Userdata.json",

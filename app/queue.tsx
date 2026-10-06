@@ -12,11 +12,19 @@ export default function Queue() {
   const p = usePlayback();
   function reorder(from: number, to: number) {
     update((s) => {
-      const current = s.queue.ids[s.queue.index];
-      const ids = move(s.queue.ids, from, to);
+      const positions = move(
+        s.queue.ids.map((_, index) => index),
+        from,
+        to,
+      );
+      const ids = positions.map((index) => s.queue.ids[index]!);
       return {
         ...s,
-        queue: { ...s.queue, ids, index: current ? ids.indexOf(current) : 0 },
+        queue: {
+          ...s.queue,
+          ids,
+          index: Math.max(0, positions.indexOf(s.queue.index)),
+        },
       };
     });
   }
