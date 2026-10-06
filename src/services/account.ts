@@ -1,3 +1,4 @@
+import "./native-random";
 import { createAuthClient } from "@neondatabase/auth";
 import { BetterAuthVanillaAdapter } from "@neondatabase/auth/vanilla/adapters";
 import { Platform } from "react-native";
