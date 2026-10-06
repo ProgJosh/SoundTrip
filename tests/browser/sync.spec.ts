@@ -1,5 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 async function signIn(page: Page, email: string, password: string) {
   await page.goto("/");
   await page
@@ -21,6 +22,15 @@ async function signIn(page: Page, email: string, password: string) {
 test("two devices recover offline playlist edits and honor account data deletion", async ({
   browser,
 }) => {
+  test.skip(
+    !process.env.NEON_AUTH_BASE_URL || !process.env.DATABASE_URL,
+    "Live development account services are not configured.",
+  );
+  execFileSync(
+    process.execPath,
+    ["--env-file=.env.local", "scripts/auth-smoke.mjs"],
+    { stdio: "inherit" },
+  );
   const user = JSON.parse(readFileSync(".local/auth-test.json", "utf8"));
   const first = await browser.newContext({
     viewport: { width: 1200, height: 900 },

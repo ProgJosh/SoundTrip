@@ -1,21 +1,23 @@
 import { createAuthClient } from "@neondatabase/auth";
 import { BetterAuthVanillaAdapter } from "@neondatabase/auth/vanilla/adapters";
 import { randomUUID } from "node:crypto";
-import { decodeJwt, decodeProtectedHeader, jwtVerify, createRemoteJWKSet } from 'jose';
+import { jwtVerify, createRemoteJWKSet } from "jose";
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
+
+// Deliberately uses a non-deliverable address and writes credentials only to an
+// ignored local fixture. Run against a development branch, never production.
 mkdirSync(".local", { recursive: true });
-const saved = existsSync(".local/auth-test.json")
+let saved = existsSync(".local/auth-test.json")
   ? JSON.parse(readFileSync(".local/auth-test.json", "utf8"))
   : null;
-const email = saved?.email || `soundtrip-${randomUUID()}@example.invalid`;
-const password = saved?.password || randomUUID() + "Aa9!";
 let cookie = "";
+const origin = "http://127.0.0.1:8081";
 const auth = createAuthClient(process.env.NEON_AUTH_BASE_URL, {
   adapter: BetterAuthVanillaAdapter({
     fetchOptions: {
-      onRequest(req) {
-        req.headers.set("Origin", "http://127.0.0.1:8081");
-        if (cookie) req.headers.set("Cookie", cookie);
+      onRequest(request) {
+        request.headers.set("Origin", origin);
+        if (cookie) request.headers.set("Cookie", cookie);
       },
       onSuccess({ response }) {
         const values = response.headers.getSetCookie();
@@ -25,58 +27,61 @@ const auth = createAuthClient(process.env.NEON_AUTH_BASE_URL, {
     },
   }),
 });
-if (!saved) {
-  const signup = await auth.signUp.email({
+async function createFixture() {
+  const email = `soundtrip-${randomUUID()}@example.invalid`;
+  const password = randomUUID() + "Aa9!";
+  const result = await auth.signUp.email({
     email,
     password,
     name: "SoundTrip verification",
-    callbackURL: "http://127.0.0.1:8081/account",
+    callbackURL: `${origin}/account`,
   });
-  if (signup.error)
-    throw new Error(`Managed signup failed: ${signup.error.message}`);
-  writeFileSync(
-    ".local/auth-test.json",
-    JSON.stringify({ id: signup.data.user.id, email, password }),
-  );
-  console.log("Managed account signup: passed");
+  if (result.error)
+    throw new Error(`Managed signup failed: ${result.error.message}`);
+  saved = { id: result.data.user.id, email, password };
+  writeFileSync(".local/auth-test.json", JSON.stringify(saved));
+  console.log("Managed test signup: passed");
 }
+if (!saved) await createFixture();
 const login = await auth.signIn.email({
-  email,
-  password,
-  callbackURL: "http://127.0.0.1:8081/account",
+  email: saved.email,
+  password: saved.password,
+  callbackURL: `${origin}/account`,
 });
 if (login.error)
   throw new Error(`Managed sign-in failed: ${login.error.message}`);
-console.log("Managed account sign-in: passed");
-const session = await auth.getSession();
-if (!session.data?.user) throw new Error("Session restoration failed.");
-console.log("Managed session restoration: passed");
-const claims = decodeJwt(session.data.session.token);
-console.log('JWT verification properties:', {issuer:claims.iss,audience:claims.aud,algorithm:decodeProtectedHeader(session.data.session.token).alg});
-try { await jwtVerify(session.data.session.token, createRemoteJWKSet(new URL(process.env.NEON_AUTH_JWKS_URL))); console.log('JWT signature verified'); } catch(e) { console.log('JWT verification:',e.message); }
-const token = await auth.token();
-console.log(
-  "JWT endpoint shape:",
-  Object.keys(token.data || {}),
-  token.error?.message || "no error",
-);
-console.log(
-  "Session token JWT format:",
-  session.data.session.token?.split(".").length === 3,
-);
-if (!token.data?.token && session.data.session.token?.split(".").length === 3)
-  token.data = { token: session.data.session.token };
-if (!token.data?.token) throw new Error("JWT issuance failed.");
-const response = await fetch("http://127.0.0.1:8787/sync", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token.data.token}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ cursor: 0, changes: [] }),
-});
-console.log(`Protected development API: ${response.status}`);
-if (!response.ok) throw new Error("API rejected the managed identity.");
+console.log("Managed sign-in: passed");
+async function protectedRequest() {
+  const session = await auth.getSession();
+  if (!session.data?.user) throw new Error("Session restoration failed.");
+  const token = session.data.session.token;
+  const issuer = new URL(process.env.NEON_AUTH_BASE_URL).origin;
+  await jwtVerify(
+    token,
+    createRemoteJWKSet(new URL(process.env.NEON_AUTH_JWKS_URL)),
+    { issuer, audience: issuer, algorithms: ["EdDSA"] },
+  );
+  console.log("Managed session and JWT signature: passed");
+  return fetch("http://127.0.0.1:8787/sync", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ cursor: 0, changes: [] }),
+    signal: AbortSignal.timeout(15000),
+  });
+}
+let response = await protectedRequest();
+if (response.status === 410) {
+  // The previous sync test intentionally deleted its metadata. A new identity
+  // gets a new subject; deleted data is never restored or reset by the test.
+  await auth.signOut();
+  await createFixture();
+  response = await protectedRequest();
+}
+if (!response.ok) throw new Error(`Protected API returned ${response.status}.`);
+console.log("Protected development API: passed");
 const signout = await auth.signOut();
-if (signout.error) throw new Error("Sign-out failed.");
+if (signout.error) throw new Error("Managed sign-out failed.");
 console.log("Managed sign-out: passed");

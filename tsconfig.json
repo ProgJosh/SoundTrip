@@ -7,6 +7,9 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": [
+    "app.config.ts",
+    "neon.ts",
+    "playwright.config.ts",
     "app/**/*.tsx",
     "src/**/*.ts",
     "src/**/*.tsx",

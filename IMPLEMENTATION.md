@@ -18,3 +18,17 @@ read-only inspection succeeded through the approved host shell.
 
 Save each working checkpoint in Git. Cloud identity and Spotify live tests depend
 on registered credentials; finish local playback before those integrations.
+
+Completed checkpoints:
+
+- `2109071`: Expo/TypeScript foundation after inspection.
+- `cd874c8`: local import, offline storage, playlists, moods, queue and playback.
+- `1ea85b3`: local LRC display and timing editing.
+- `8bcbf70`: official Spotify metadata authorization/import boundary and attribution.
+- `cab5723`: dedicated Neon development branch, account services, authenticated metadata API, offline outbox, two-device sync/deletion verification, and offline web playback verification.
+- Final polish: keyboard-accessible web sliders, missing-file recovery checks, SDK-compatible native theme support, global Spotify expiry, repeatable verification setup, platform documentation and dependency audit. See `docs/VERIFICATION.md` for exact results and native coverage limits.
+
+Spotify live access remains gated by credentials and current API permissions.
+The API runs locally against Neon; it has not been publicly deployed. iOS device
+checks require macOS/Xcode. Android toolchain/device results are recorded in the
+verification report after the attempted native build completes.

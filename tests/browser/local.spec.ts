@@ -173,5 +173,45 @@ test("local import, playlists, lyrics, shuffle and playback survive network disc
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // Simulate browser file eviction; playlists and lyric metadata must survive.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open("soundtrip", 1);
+        request.onsuccess = () => {
+          const db = request.result;
+          const transaction = db.transaction("files", "readwrite");
+          transaction.objectStore("files").clear();
+          transaction.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+        request.onerror = () => reject(request.error);
+      }),
+  );
+  await page.reload();
+  await expect(
+    page.getByText("Offline escapes", { exact: true }).first(),
+  ).toBeVisible();
+  const relinkChooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("button", { name: "Relink Morning Drift", exact: true })
+    .click();
+  await (
+    await relinkChooser
+  ).setFiles({
+    name: "SoundTrip - Morning Drift.wav",
+    mimeType: "audio/wav",
+    buffer: wav(220),
+  });
+  await expect(
+    page.getByRole("button", {
+      name: "Play Morning Drift by SoundTrip",
+      exact: true,
+    }),
+  ).toBeEnabled();
   expect(errors).toEqual([]);
 });

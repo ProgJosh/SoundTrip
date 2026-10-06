@@ -113,10 +113,8 @@ async function get<T>(path: string): Promise<T> {
   });
   if (epoch !== generation) throw new Error("Spotify has been disconnected.");
   if (response.status === 429) {
-    const seconds = Math.min(
-      86400,
-      Math.max(1, Number(response.headers.get("Retry-After") || 60)),
-    );
+    const retry = Number(response.headers.get("Retry-After") || 60);
+    const seconds = Number.isFinite(retry) && retry > 0 ? retry : 60;
     rateLimitUntil = Date.now() + seconds * 1000;
     throw new Error(
       `Spotify request limit reached. Wait ${seconds} seconds before refreshing.`,
@@ -158,13 +156,11 @@ export async function listSpotifyPlaylists(): Promise<SpotifySummary[]> {
     name: string;
     external_urls?: { spotify?: string };
   }>("me/playlists?limit=50", 1000);
-  return rows
-    .filter(Boolean)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      url: spotifyUrl(p.external_urls?.spotify, "playlist", p.id),
-    }));
+  return rows.filter(Boolean).map((p) => ({
+    id: p.id,
+    name: p.name,
+    url: spotifyUrl(p.external_urls?.spotify, "playlist", p.id),
+  }));
 }
 export async function importSpotifyPlaylist(
   p: SpotifySummary,

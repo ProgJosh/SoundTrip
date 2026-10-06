@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AppState } from "react-native";
 import * as Crypto from "expo-crypto";
 import {
   emptyState,
@@ -106,6 +107,24 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     latest.current = next;
     setState(next);
   };
+  useEffect(() => {
+    if (!ready) return;
+    const expire = () =>
+      update((s) => {
+        const spotify = s.spotify.filter(
+          (p) => Date.now() - p.importedAt < SPOTIFY_METADATA_TTL,
+        );
+        return spotify.length === s.spotify.length ? s : { ...s, spotify };
+      });
+    const timer = setInterval(expire, 60000);
+    const subscription = AppState.addEventListener("change", (next) => {
+      if (next === "active") expire();
+    });
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
   const patchTrack = (key: string, patch: Partial<Track>) =>
     update((s) => {
       const track = s.tracks.find((t) => t.id === key);
