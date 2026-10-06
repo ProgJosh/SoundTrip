@@ -2,6 +2,8 @@
 
 SoundTrip's Expo web export is hosted with Cloudflare Workers Static Assets. `wrangler.jsonc` deploys only `dist/`, uses SPA navigation fallback for Expo Router, and serves `/index.html` directly for the offline shell. The account ID is a public deployment identifier, not a credential.
 
+Live app: **[soundtrip.joshua27emmanuel30.workers.dev](https://soundtrip.joshua27emmanuel30.workers.dev)**. Published on 2026-10-06; deployed version `e5c14883-a4a8-4bac-950a-013cca85770c`, from hosting code commit `2cc29a5`.
+
 ## Run and deploy
 
 Requires Node 24 and the dependencies pinned in `package-lock.json`:
@@ -17,7 +19,9 @@ npm run deploy:cloudflare
 
 `preview:cloudflare` runs the local Workers runtime on `http://127.0.0.1:8788`. Both deployment commands automatically run `build:cloudflare` using the custom build command in `wrangler.jsonc`. A deployment dry run builds/validates the app without publishing. `npm run build:web` and `npm run preview` still provide the existing local-development workflow.
 
-The production build uses only shell/CI build variables and an optional ignored `.env.production`. It disables Expo's automatic dotenv loading so development `.env.local` endpoints and credentials do not enter deployment configuration. Leave production public settings empty for local playback and Spotify export import. To enable optional services, copy `.env.production.example` to `.env.production` and configure valid public HTTPS URLs. Never put secrets in `EXPO_PUBLIC_*` values; they are compiled into the browser app.
+On Windows, stop `preview:cloudflare` with Ctrl+C before rebuilding/deploying: its file watcher can lock `dist/` while Expo replaces that directory. If a Windows runtime package is missing after a partial dependency install, restore the pinned install with `npm ci --include=optional` before running builds.
+
+The production build uses shell/CI build variables and an optional ignored `.env.production`, whose values override inherited settings. It disables Expo's automatic dotenv loading and omits loopback endpoints that Wrangler may inherit from development settings. Leave production public settings empty for local playback and Spotify export import. To enable optional services, copy `.env.production.example` to `.env.production` and configure valid public HTTPS URLs. Never put secrets in `EXPO_PUBLIC_*` values; they are compiled into the browser app.
 
 ## What is hosted
 
