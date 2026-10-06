@@ -32,6 +32,8 @@ Android requires a current Android SDK and JDK 17 for this tested toolchain. The
 
 ## What is implemented
 
+Cloudflare hosting is configured in `wrangler.jsonc`. Use `npm run deploy:cloudflare:check` for a production build/dry run, `npm run preview:cloudflare` for the local Workers runtime, and `npm run deploy:cloudflare` to publish. The deployment build ignores development `.env.local`; local music and Spotify export import need no production credentials. See [Cloudflare deployment instructions](docs/CLOUDFLARE.md), including optional account services and per-origin browser storage.
+
 - System file-picker imports, validated headers/extensions and a 100 MB per-file limit. Native imports are copied into app documents; web imports become IndexedDB blobs. SHA-256 fingerprints deduplicate and reconnect identical files across devices.
 - Available ID3v2.3/2.4 title, artist, album, embedded artwork and unsynchronized lyrics; WAV duration; FLAC comments and duration. Other tags/codecs fall back to the filename and editable details. Playback supplies duration where supported. Compressed/encrypted ID3 frames are skipped. Not every container's metadata is supported.
 - Search, favorite/offline filters, five editable mood tags, playlist create/rename/reorder/remove/delete, relinking, queue reorder/remove/clear, normal and mood shuffle, repeat off/all/one, play/pause/seek/skip, and web volume. Missing files preserve track and playlist metadata.

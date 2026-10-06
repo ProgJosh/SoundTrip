@@ -9,6 +9,7 @@ module.exports = defineConfig([
       "android/**",
       "ios/**",
       ".local/**",
+      ".wrangler/**",
       "node_modules/**",
       "test-results/**",
     ],

@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "soundtrip",
+  "account_id": "ad27fba804f2a9fac2f45fa2a53c9c91",
+  "compatibility_date": "2026-10-06",
+  "workers_dev": true,
+  "preview_urls": true,
+  // Build the Expo web app; imported audio and private library data stay in the browser.
+  "build": {
+    "command": "npm run build:cloudflare",
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    // The offline shell fetches /index.html directly, without canonical redirects.
+    "html_handling": "none",
+  },
+}

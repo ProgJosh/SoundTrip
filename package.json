@@ -12,6 +12,10 @@
     "lint": "eslint .",
     "test": "tsx --test tests/*.test.ts",
     "build:web": "expo export --platform web && node scripts/offline-shell.mjs",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "preview:cloudflare": "wrangler dev --port 8788",
+    "deploy:cloudflare": "wrangler deploy",
+    "deploy:cloudflare:check": "wrangler deploy --dry-run",
     "api": "tsx --env-file=.env.local server/index.ts",
     "preview": "node scripts/preview.mjs",
     "db:migrate": "tsx --env-file=.env.local server/migrate.ts",
@@ -56,7 +60,8 @@
     "eslint-config-expo": "^57.0.2",
     "prettier": "^3.9.9",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "4.147.0"
   },
   "overrides": {
     "decode-uri-component": "0.5.0",

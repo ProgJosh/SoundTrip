@@ -8,8 +8,26 @@ function files(root) {
       : [path.join(root, e.name)],
   );
 }
+writeFileSync(
+  "dist/manifest.json",
+  JSON.stringify({
+    name: "SoundTrip",
+    short_name: "SoundTrip",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#101313",
+    theme_color: "#101313",
+  }),
+);
+const excluded = new Set([
+  "metadata.json",
+  "sw.js",
+  "_headers",
+  "_redirects",
+  ".assetsignore",
+]);
 const assets = files("dist")
-  .filter((p) => !p.endsWith(".map") && !p.endsWith("metadata.json"))
+  .filter((p) => !p.endsWith(".map") && !excluded.has(path.basename(p)))
   .map((p) => "/" + p.replaceAll("\\", "/").replace(/^dist\//, ""));
 const version = createHash("sha256")
   .update(assets.join("\n"))
@@ -30,15 +48,4 @@ html = html
     `<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script></body>`,
   );
 writeFileSync("dist/index.html", html);
-writeFileSync(
-  "dist/manifest.json",
-  JSON.stringify({
-    name: "SoundTrip",
-    short_name: "SoundTrip",
-    start_url: "/",
-    display: "standalone",
-    background_color: "#101313",
-    theme_color: "#101313",
-  }),
-);
 console.log("Offline app shell generated. Only bundled app assets are cached.");
