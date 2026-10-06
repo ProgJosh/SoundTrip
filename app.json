@@ -22,6 +22,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
+      "favicon": "./assets/soundtrip-icon.png",
       "name": "SoundTrip",
       "themeColor": "#101313"
     },

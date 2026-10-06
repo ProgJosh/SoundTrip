@@ -36,6 +36,8 @@ The new HTTPS origin has its own browser library. The localhost library remains 
 
 `public/_headers` sets revalidation for HTML, manifest and service-worker updates, and immutable caching for fingerprinted Expo bundles. `public/.assetsignore` excludes source maps and Expo build metadata from upload. The offline-shell generator excludes Cloudflare control files and caches the manifest with the other public app assets. No cross-origin OAuth-breaking opener policy is added.
 
+The website favicon uses SoundTrip's existing lime pulse badge from `assets/soundtrip-icon.png`. `public/icons/` supplies 192px and 512px web app icons, a solid maskable icon and a 180px Apple touch icon. The generated manifest and HTML reference these assets; the offline cache includes them. Icon responses revalidate, and the offline cache version includes asset contents so replacing an icon refreshes cached artwork.
+
 ## Deployments from Git
 
 The repository is `https://github.com/ProgJosh/SoundTrip`, branch `master`. For Cloudflare Workers Builds, connect that repository to the `soundtrip` Worker and use:
