@@ -12,6 +12,7 @@ module.exports = defineConfig([
       ".wrangler/**",
       "node_modules/**",
       "test-results/**",
+      "remotion/**",
     ],
   },
 ]);

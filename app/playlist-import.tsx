@@ -11,9 +11,12 @@ import {
 import { useRouter } from "expo-router";
 import { PlaylistExportEntry } from "../src/core/model";
 import {
+  applyExportMatches,
   exportMatches,
+  ExportProposal,
   matchedExportIds,
   mergePlaylistExports,
+  proposeExportMatches,
 } from "../src/core/playlist-export";
 import { loadPlaylistExports } from "../src/services/playlist-export";
 import { id, useLibrary } from "../src/state/Library";
@@ -166,8 +169,26 @@ export default function PlaylistImport() {
   const [selected, setSelected] = useState<string>();
   const [message, setMessage] = useState("");
   const [remove, setRemove] = useState(false);
+  const [review, setReview] = useState<ExportProposal[] | null>(null);
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+  const [reviewPage, setReviewPage] = useState(0);
+  const [unmatchedOnly, setUnmatchedOnly] = useState(false);
   const imports = state.playlistExports;
   const playlist = imports.find((p) => p.id === selected) || imports[0];
+  const shownEntries = playlist
+    ? unmatchedOnly
+      ? playlist.entries.filter((e) => !e.localTrackId)
+      : playlist.entries
+    : [];
+  // Confirming a song in the "without a file" view shrinks the list.
+  const page = Math.min(
+    trackPage,
+    Math.max(0, Math.ceil(shownEntries.length / 20) - 1),
+  );
+  const unmatchedCount = playlist
+    ? playlist.entries.filter((e) => !e.localTrackId).length
+    : 0;
+  const acceptedCount = review?.filter((p) => accepted[p.entryId]).length || 0;
   const confirmed = playlist ? matchedExportIds(playlist, state.tracks) : [];
   const available = confirmed.filter((key) => !!state.files[key]);
   const localPlaylist = state.playlists.find(
@@ -211,8 +232,7 @@ export default function PlaylistImport() {
         return { ...s, playlistExports: result.playlists };
       });
       await checkpoint();
-      setSelected(selectedDraft[0]?.id);
-      setTrackPage(0);
+      openPlaylist(selectedDraft[0]?.id);
       setDraft(null);
       setMessage(
         `Imported ${added} playlist${added === 1 ? "" : "s"}. Confirm local files to make them playable.`,
@@ -238,6 +258,57 @@ export default function PlaylistImport() {
           : p,
       ),
     }));
+  }
+  function openPlaylist(key?: string) {
+    setSelected(key);
+    setTrackPage(0);
+    setReview(null);
+  }
+  function findMatches() {
+    if (!playlist) return;
+    setMessage("");
+    const proposals = proposeExportMatches(playlist, state.tracks);
+    if (!proposals.length) {
+      setReview(null);
+      setMessage(
+        unmatchedCount
+          ? "No unambiguous matches found in your library. Import more of your own audio, or choose files per song below."
+          : "Every song in this playlist already has a confirmed file.",
+      );
+      return;
+    }
+    setReview(proposals);
+    setReviewPage(0);
+    // Exact title/artist matches start selected; close matches need a look first.
+    setAccepted(
+      Object.fromEntries(
+        proposals.map((p) => [p.entryId, p.strength === "exact"]),
+      ),
+    );
+  }
+  async function confirmMatches() {
+    if (!playlist || !review) return;
+    const chosen = review.filter((p) => accepted[p.entryId]);
+    if (!chosen.length) return;
+    update((s) => ({
+      ...s,
+      playlistExports: s.playlistExports.map((p) =>
+        p.id === playlist.id ? applyExportMatches(p, chosen) : p,
+      ),
+    }));
+    setReview(null);
+    try {
+      await checkpoint();
+      const left = unmatchedCount - chosen.length;
+      setMessage(
+        `Confirmed ${chosen.length} file${chosen.length === 1 ? "" : "s"}. ` +
+          (left
+            ? `${left} song${left === 1 ? "" : "s"} still need${left === 1 ? "s" : ""} a local file.`
+            : "Every song now has a confirmed file."),
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
   async function createPlaylist() {
     if (!playlist || !confirmed.length) return;
@@ -278,8 +349,7 @@ export default function PlaylistImport() {
       ...s,
       playlistExports: s.playlistExports.filter((p) => p.id !== playlist.id),
     }));
-    setSelected(undefined);
-    setTrackPage(0);
+    openPlaylist(undefined);
     setListPage(0);
     setRemove(false);
     try {
@@ -437,10 +507,7 @@ export default function PlaylistImport() {
                 key={p.id}
                 primary={p.id === playlist?.id}
                 label={`Open imported playlist ${p.name}`}
-                onPress={() => {
-                  setSelected(p.id);
-                  setTrackPage(0);
-                }}
+                onPress={() => openPlaylist(p.id)}
               >{`${p.name} · ${p.entries.length} songs`}</Button>
             ))}
             {imports.length > 20 && (
@@ -497,6 +564,14 @@ export default function PlaylistImport() {
                 Import local music
               </Button>
               <Button
+                icon="search"
+                primary={!confirmed.length}
+                disabled={!state.tracks.length || !unmatchedCount}
+                onPress={findMatches}
+              >
+                Find matching files for all songs
+              </Button>
+              <Button
                 icon="shuffle"
                 disabled={!available.length}
                 onPress={() => {
@@ -538,36 +613,159 @@ export default function PlaylistImport() {
                 changes do not overwrite it; add more tracks in Playlists.
               </Text>
             )}
-            {playlist.entries
-              .slice(trackPage * 20, (trackPage + 1) * 20)
-              .map((entry) => (
-                <ExportSong
-                  key={`${playlist.id}-${entry.id}`}
-                  entry={entry}
-                  link={(key) => link(entry.id, key)}
-                />
-              ))}
+            {review && (
+              <View
+                style={{
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: c.border,
+                  borderRadius: 12,
+                  padding: 14,
+                }}
+              >
+                <Text style={{ color: c.text, fontSize: 20 }}>
+                  Review proposed matches
+                </Text>
+                <Text style={styles.subtitle}>
+                  {review.length} songs have exactly one fitting file in your
+                  library. Same title and artist matches are selected. Close
+                  matches differ in version, featuring or file naming, so check
+                  them before selecting. Songs with several possible files are
+                  left for you to choose below.
+                </Text>
+                {review
+                  .slice(reviewPage * 20, (reviewPage + 1) * 20)
+                  .map((p) => {
+                    const entry = playlist.entries.find(
+                      (e) => e.id === p.entryId,
+                    );
+                    const t = state.tracks.find((x) => x.id === p.trackId);
+                    if (!entry || !t) return null;
+                    return (
+                      <Pressable
+                        key={p.entryId}
+                        accessibilityRole="checkbox"
+                        aria-checked={!!accepted[p.entryId]}
+                        accessibilityLabel={`Match ${entry.title} to ${t.filename}`}
+                        accessibilityState={{ checked: !!accepted[p.entryId] }}
+                        onPress={() =>
+                          setAccepted((v) => ({
+                            ...v,
+                            [p.entryId]: !v[p.entryId],
+                          }))
+                        }
+                        style={[
+                          styles.row,
+                          { minHeight: 54, paddingVertical: 8 },
+                        ]}
+                      >
+                        <Icon
+                          name={
+                            accepted[p.entryId] ? "checkbox" : "square-outline"
+                          }
+                          color={accepted[p.entryId] ? c.accent : c.muted}
+                        />
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <Text style={{ color: c.text }}>
+                            {entry.title}
+                            {entry.artist ? ` · ${entry.artist}` : ""}
+                          </Text>
+                          <Text style={styles.subtitle}>
+                            {p.strength === "exact"
+                              ? "Same title and artist"
+                              : "Close match"}{" "}
+                            · {t.filename}
+                            {state.files[t.id] ? "" : " · file missing"}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                {review.length > 20 && (
+                  <View style={styles.wrap}>
+                    <Button
+                      disabled={!reviewPage}
+                      onPress={() => setReviewPage((n) => n - 1)}
+                    >
+                      Previous proposals
+                    </Button>
+                    <Button
+                      disabled={(reviewPage + 1) * 20 >= review.length}
+                      onPress={() => setReviewPage((n) => n + 1)}
+                    >
+                      Next proposals
+                    </Button>
+                  </View>
+                )}
+                <View style={styles.wrap}>
+                  <Button
+                    primary
+                    icon="link-outline"
+                    disabled={!acceptedCount}
+                    onPress={() => {
+                      void confirmMatches();
+                    }}
+                  >{`Confirm selected matches (${acceptedCount})`}</Button>
+                  <Button
+                    onPress={() =>
+                      setAccepted(
+                        Object.fromEntries(
+                          review.map((p) => [p.entryId, true]),
+                        ),
+                      )
+                    }
+                  >
+                    Select all, including close matches
+                  </Button>
+                  <Button onPress={() => setReview(null)}>Cancel review</Button>
+                </View>
+              </View>
+            )}
+            {!!playlist.entries.length && (
+              <View style={styles.wrap}>
+                <Button
+                  primary={unmatchedOnly}
+                  icon="filter-outline"
+                  onPress={() => {
+                    setUnmatchedOnly((v) => !v);
+                    setTrackPage(0);
+                  }}
+                >
+                  {unmatchedOnly
+                    ? "Show all songs"
+                    : `Show songs without a file (${unmatchedCount})`}
+                </Button>
+              </View>
+            )}
+            {unmatchedOnly && !shownEntries.length && (
+              <Text style={styles.subtitle}>
+                Every song in this playlist has a confirmed file.
+              </Text>
+            )}
+            {shownEntries.slice(page * 20, (page + 1) * 20).map((entry) => (
+              <ExportSong
+                key={`${playlist.id}-${entry.id}`}
+                entry={entry}
+                link={(key) => link(entry.id, key)}
+              />
+            ))}
             {!playlist.entries.length && (
               <Text style={styles.subtitle}>
                 This exported playlist has no readable songs. Its name is
                 preserved.
               </Text>
             )}
-            {playlist.entries.length > 20 && (
+            {shownEntries.length > 20 && (
               <View style={styles.wrap}>
-                <Button
-                  disabled={!trackPage}
-                  onPress={() => setTrackPage((n) => n - 1)}
-                >
+                <Button disabled={!page} onPress={() => setTrackPage(page - 1)}>
                   Previous exported songs
                 </Button>
                 <Text style={styles.subtitle}>
-                  Page {trackPage + 1} of{" "}
-                  {Math.ceil(playlist.entries.length / 20)}
+                  Page {page + 1} of {Math.ceil(shownEntries.length / 20)}
                 </Text>
                 <Button
-                  disabled={(trackPage + 1) * 20 >= playlist.entries.length}
-                  onPress={() => setTrackPage((n) => n + 1)}
+                  disabled={(page + 1) * 20 >= shownEntries.length}
+                  onPress={() => setTrackPage(page + 1)}
                 >
                   Next exported songs
                 </Button>

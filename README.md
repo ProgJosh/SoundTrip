@@ -28,6 +28,8 @@ npm run android
 npm run ios
 ```
 
+To publish on Google Play, follow [the Play Store guide](docs/PLAY_STORE.md): `npm run android:bundle` builds a signed `.aab`, and `npm run android:smoke` runs the release APK on emulators across Android versions.
+
 Android requires a current Android SDK and JDK 17 for this tested toolchain. The system Java on this workstation is Java 8; Android Studio's bundled Java 25 caused a native CMake failure. A checksum-verified Adoptium JDK 17 was installed under ignored `.local/tools` for verification. On this workstation, set `$env:JAVA_HOME = Get-Content .local/java-home.txt` before building; on another machine, install JDK 17 and set `JAVA_HOME` to that installation. Native directories are generated from `app.json` and `app.config.ts` and are ignored. Rebuild after changing plugins, permissions, or verified-link domains. Expo Go is insufficient to verify background services and the final permissions.
 
 ## What is implemented
@@ -83,7 +85,7 @@ Choose **Playlists → Import Spotify export**, or the same button on **Spotify 
 
 The importer preserves song order, repeated songs, empty playlist names, and unreadable/podcast skip counts. Identical snapshots are deduplicated without losing file matches; changed exports become separate snapshots. Export metadata stays on this device until explicitly removed, independently of the API's 24-hour expiry and disconnect. Raw JSON, unrelated account fields, and export metadata are not uploaded to the backend. No Spotify audio is included or fetched.
 
-Confirm each matching file you independently import, then choose **Create local playlist** or **Shuffle confirmed files**. Unmatched references stay in the imported snapshot, and missing audio keeps its confirmed link. Created local playlists are editable copies using ordinary library track IDs and the normal metadata sync; later matching changes do not overwrite those copies. Limits: 20 JSON files, 10 MB per file / 20 MB combined, and 1,000 playlists / 20,000 items per import. This is a manual snapshot, not a live Spotify connection or automatic refresh.
+Confirm each matching file you independently import, then choose **Create local playlist** or **Shuffle confirmed files**. **Find matching files for all songs** proposes a file for every unlinked song across the whole snapshot when exactly one library track fits. Same title and artist matches start selected. Close matches start unselected, for example "Song - Remastered 2011", "(feat. …)" or a file named "Title - Artist". Songs with several candidates are left for manual choice. Nothing is linked until you confirm the review, and **Show songs without a file** lists what you still need to import. SoundTrip never downloads or extracts audio from Spotify: the export contains none, Spotify's Web API serves none, and its streams are DRM-protected. Unmatched references stay in the imported snapshot, and missing audio keeps its confirmed link. Created local playlists are editable copies using ordinary library track IDs and the normal metadata sync; later matching changes do not overwrite those copies. Limits: 20 JSON files, 10 MB per file / 20 MB combined, and 1,000 playlists / 20,000 items per import. This is a manual snapshot, not a live Spotify connection or automatic refresh.
 
 ## Verification and structure
 

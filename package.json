@@ -20,7 +20,10 @@
     "preview": "node scripts/preview.mjs",
     "db:migrate": "tsx --env-file=.env.local server/migrate.ts",
     "test:web": "playwright test",
-    "build:native": "expo export --platform ios --platform android --output-dir dist-native"
+    "build:native": "expo export --platform ios --platform android --output-dir dist-native",
+    "android:apk": "node scripts/build-android.mjs apk",
+    "android:bundle": "node scripts/build-android.mjs bundle",
+    "android:smoke": "node scripts/android-smoke.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

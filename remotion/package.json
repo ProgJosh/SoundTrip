@@ -1,0 +1,31 @@
+{
+  "name": "soundtrip-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion showreel and promo videos for SoundTrip",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "music": "node scripts/make-music.mjs",
+    "showreel": "remotion render src/index.ts Showreel out/soundtrip-showreel.mp4 --crf=16",
+    "render": "remotion render src/index.ts PlaylistImport out/soundtrip-playlist-import.mp4",
+    "cover": "remotion still src/index.ts Cover out/soundtrip-playlist-import-cover.png",
+    "build": "npm run music && npm run showreel && npm run render && npm run cover",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.528",
+    "@remotion/fonts": "4.0.528",
+    "@remotion/google-fonts": "4.0.528",
+    "@remotion/media-utils": "4.0.528",
+    "@remotion/noise": "4.0.528",
+    "@remotion/paths": "4.0.528",
+    "@remotion/transitions": "4.0.528",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.528"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.4",
+    "typescript": "^6.0.3"
+  }
+}

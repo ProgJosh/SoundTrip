@@ -1,12 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyExportMatches,
+  baseTitle,
   EXPORT_LIMITS,
   exportIdentity,
   exportMatches,
   matchedExportIds,
   mergePlaylistExports,
   parsePlaylistExport,
+  proposeExportMatches,
   validateExportFiles,
 } from "../src/core/playlist-export";
 import { emptyState, PlaylistExport, Track } from "../src/core/model";
@@ -148,6 +151,70 @@ test("export matching supports unknown duration but never confirms a candidate a
     { ...playlist.entries[0]!, id: "missing", localTrackId: "not-in-library" },
   );
   assert.deepEqual(matchedExportIds(playlist, tracks), ["local", "local"]);
+});
+test("bulk proposals cover exact, version-suffix, featuring and swapped-filename matches, skip ambiguity, and link only accepted entries", () => {
+  const entries = [
+    ["Morning Drift", "SoundTrip"],
+    ["Hey Jude - Remastered 2015", "The Beatles"],
+    ["Blinding Lights (feat. Somebody)", "The Weeknd"],
+    ["Clocks", "Coldplay"],
+    ["Twin", "Echo"],
+    ["Not In Library", "Nobody"],
+    ["Already Linked", "Someone"],
+  ].map(([title, artist], i) => ({
+    id: String(i),
+    title: title!,
+    artist: artist!,
+    album: "",
+    kind: "track" as const,
+    ...(i === 6 ? { localTrackId: "kept" } : {}),
+  }));
+  const playlist: PlaylistExport = {
+    id: "bulk",
+    name: "Bulk",
+    entries,
+    skipped: 0,
+    importedAt: 1,
+  };
+  const track = (id: string, title: string, artist: string, filename = "") =>
+    ({
+      id,
+      title,
+      artist,
+      filename: filename || `${id}.mp3`,
+      duration: 0,
+    }) as Track;
+  const tracks = [
+    track("drift", "Morning Drift", "SoundTrip"),
+    track("jude", "Hey Jude", "The Beatles"),
+    track("lights", "Blinding Lights", "The Weeknd, Somebody"),
+    // "Clocks - Coldplay.mp3" parses as artist "Clocks", title "Coldplay".
+    track("clocks", "Coldplay", "Clocks", "Clocks - Coldplay.mp3"),
+    track("twin-a", "Twin", "Echo"),
+    track("twin-b", "Twin", "Echo"),
+  ];
+  const proposals = proposeExportMatches(playlist, tracks);
+  assert.deepEqual(
+    proposals.map((p) => [p.entryId, p.trackId, p.strength]),
+    [
+      ["0", "drift", "exact"],
+      ["1", "jude", "close"],
+      ["2", "lights", "close"],
+      ["3", "clocks", "close"],
+    ],
+  );
+  assert.equal(baseTitle("Song [Remastered]"), "song");
+  assert.equal(baseTitle("Live Forever - Live"), "liveforeverlive");
+  // Proposals change nothing until accepted; rejected and linked entries are untouched.
+  assert.equal(playlist.entries[0]!.localTrackId, undefined);
+  const applied = applyExportMatches(playlist, [
+    proposals[0]!,
+    { entryId: "6", trackId: "overwrite" },
+  ]);
+  assert.equal(applied.entries[0]!.localTrackId, "drift");
+  assert.equal(applied.entries[1]!.localTrackId, undefined);
+  assert.equal(applied.entries[6]!.localTrackId, "kept");
+  assert.equal(applyExportMatches(playlist, []), playlist);
 });
 test("export snapshots survive reload without API expiry and restore defaults for old libraries", () => {
   const state = emptyState();

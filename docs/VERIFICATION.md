@@ -64,6 +64,30 @@ Both existing browser tests passed against `http://127.0.0.1:8788` in Cloudflare
 
 The frontend was published under version `e5c14883-a4a8-4bac-950a-013cca85770c`, using hosting-code commit `2cc29a5`, and that commit was pushed to `origin/master`. Only public build assets were uploaded. The Node metadata API, account production credentials, live Spotify OAuth and a custom domain are separate configuration; this asset-only hosting does not deploy those services. Audio and library data remain browser-local and do not transfer automatically from the localhost origin. The agent's local Wrangler preview was stopped after verification.
 
+## Play Store release checkpoint (2026-10-11)
+
+**Bulk export matching:** `npm run typecheck`, `npm run lint` and `npm test` passed, with 25 tests including the new proposal/apply case. The browser tests `bulk-match.spec.ts` and `export.spec.ts` passed against the production web export.
+
+**Release artifact:** `npm run android:apk -- --abi x86_64` built a release APK that targets API 36 with minSdk 24. The APK was signed through the upload-key plugin with a throwaway test key, and `apksigner` verified the signature. `zipalign -c -P 16` passed, and every native library's LOAD segments are 16 KB aligned (0x4000). The manifest no longer requests `SYSTEM_ALERT_WINDOW`. The adaptive and monochrome launcher icons are generated.
+
+**Emulator matrix:** `npm run android:smoke` cold-booted each emulator with wiped data, using the `google_apis` x86_64 images and host GPU rendering. It installed the release APK, completed onboarding, imported a generated WAV through the system document picker, started playback, sent the app home for 10 seconds, and checked the media session and logcat.
+
+| Android | API | Result |
+| --- | --- | --- |
+| 16 | 36 | 8/8 passed |
+| 15 | 35 | 8/8 passed |
+| 14 | 34 | 8/8 passed |
+| 13 | 33 | 8/8 passed |
+| 11 | 30 | 8/8 passed |
+| 9 | 28 | 8/8 passed |
+| 7.0 | 24 | Launch, install and crash checks passed. Import, foreground playback, and playback 15 s after going home were verified manually. |
+
+On Android 7.0, the old picker does not respond to synthetic taps on folders or files. The manual check navigated it with keyboard focus and Enter. The script uses the same keyboard fallback for Android 11's picker. Media-session state checks accept both `state=3` and the `PLAYING(3)` format used from Android 14.
+
+**Play bundle:** `npm run android:bundle` built `dist-android/soundtrip-0.1.0-1.aab` in 49 minutes. It contains arm64-v8a, armeabi-v7a, x86 and x86_64 native libraries. The bundle is signed by the throwaway test upload key, not the debug key. On Windows, this required enabling long paths and building native code with CMake 3.31.6 (`plugins/with-android-cmake.js`). The ninja bundled with CMake 3.22.1 rejected a 278-character React Native codegen object path.
+
+Not covered: physical devices, audible output, Bluetooth and headset controls, OEM battery savers, and an upload to Play Console with the owner's real upload key. Test on at least one real phone from the internal or closed testing track before production.
+
 ## Dependency audit
 
 Safe overrides patch `decode-uri-component` and Xcode's `uuid`. The concluding audit reported 19 high-severity findings, with zero critical, moderate, or low findings. The inherited Expo/React Native tooling findings originate from `braces` ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)) and `node-forge` ([GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv)). The latest published versions checked during this session were still inside their reported vulnerable ranges. npm's forced remediation proposed a breaking SDK downgrade; it was not applied. Review the current `npm audit` report before release.

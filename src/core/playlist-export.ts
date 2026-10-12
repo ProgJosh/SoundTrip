@@ -154,6 +154,132 @@ export function exportMatches(
     (t) => clean(t.filename) === clean(entry.localFilename!),
   );
 }
+export type ExportProposal = {
+  entryId: string;
+  trackId: string;
+  /** exact: same title and artist. close: differs only in version/featuring text, word order or separators. */
+  strength: "exact" | "close";
+};
+const VERSION_WORDS =
+  "remaster|remastered|version|edit|mono|stereo|bonus|deluxe|anniversary|explicit|clean|feat|ft|featuring|with";
+const compact = (v: string) =>
+  v
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+/** Title without Spotify-style version suffixes and featured-artist text. */
+export function baseTitle(v: string): string {
+  const lower = v.normalize("NFKC").toLocaleLowerCase();
+  const stripped = lower
+    // "Song - Remastered 2011", "Song - Radio Edit", "Song - feat. X"
+    .replace(
+      new RegExp(`\\s[-–—]\\s[^-–—]*\\b(${VERSION_WORDS})\\b.*$`, "u"),
+      "",
+    )
+    // "Song (feat. X)", "Song [Remastered]"
+    .replace(
+      new RegExp(`[(\\[][^)\\]]*\\b(${VERSION_WORDS})\\b[^)\\]]*[)\\]]`, "gu"),
+      "",
+    )
+    // "Song feat. X"
+    .replace(/\s(feat\.?|ft\.?|featuring)\s.*$/u, "");
+  return compact(stripped) || compact(lower);
+}
+function artistNames(v: string): string[] {
+  return v
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .split(/,|;|\/|&|\band\b|\bx\b|\bfeat\.?|\bft\.?|\bfeaturing\b|\bwith\b/u)
+    .map(compact)
+    .filter(Boolean);
+}
+/**
+ * Proposes one local file for each unlinked export entry when exactly one
+ * library track fits. Nothing is linked here: the caller must show the
+ * proposals and only apply the ones the person confirms.
+ */
+export function proposeExportMatches(
+  playlist: Pick<PlaylistExport, "entries">,
+  tracks: Track[],
+): ExportProposal[] {
+  const push = (map: Map<string, Track[]>, key: string, t: Track) => {
+    if (!key) return;
+    const list = map.get(key);
+    if (list) {
+      if (!list.includes(t)) list.push(t);
+    } else map.set(key, [t]);
+  };
+  const exact = new Map<string, Track[]>();
+  const byFile = new Map<string, Track[]>();
+  const byBase = new Map<string, Track[]>();
+  const fileKey = (v: string) => v.normalize("NFKC").trim().toLocaleLowerCase();
+  for (const t of tracks) {
+    push(exact, `${compact(t.title)}\u0000${compact(t.artist)}`, t);
+    push(byFile, fileKey(t.filename), t);
+    push(byBase, baseTitle(t.title), t);
+    // Files named "Title - Artist" are parsed with the parts swapped.
+    push(byBase, baseTitle(t.artist), t);
+  }
+  const proposals: ExportProposal[] = [];
+  for (const entry of playlist.entries) {
+    if (entry.localTrackId) continue;
+    if (!entry.artist) {
+      const found = entry.localFilename
+        ? byFile.get(fileKey(entry.localFilename)) || []
+        : [];
+      if (found.length === 1)
+        proposals.push({
+          entryId: entry.id,
+          trackId: found[0]!.id,
+          strength: "exact",
+        });
+      continue;
+    }
+    const same =
+      exact.get(`${compact(entry.title)}\u0000${compact(entry.artist)}`) || [];
+    if (same.length === 1) {
+      proposals.push({
+        entryId: entry.id,
+        trackId: same[0]!.id,
+        strength: "exact",
+      });
+      continue;
+    }
+    if (same.length > 1) continue; // Ambiguous: the person chooses manually.
+    const title = baseTitle(entry.title);
+    const wanted = new Set(artistNames(entry.artist));
+    const artistFits = (v: string, filename: string) =>
+      artistNames(v).some((a) => wanted.has(a)) ||
+      [...wanted].some((a) => a.length > 2 && compact(filename).includes(a));
+    const close = (byBase.get(title) || []).filter(
+      (t) =>
+        (baseTitle(t.title) === title && artistFits(t.artist, t.filename)) ||
+        (baseTitle(t.artist) === title && artistFits(t.title, t.filename)),
+    );
+    if (close.length === 1)
+      proposals.push({
+        entryId: entry.id,
+        trackId: close[0]!.id,
+        strength: "close",
+      });
+  }
+  return proposals;
+}
+export function applyExportMatches(
+  playlist: PlaylistExport,
+  accepted: Pick<ExportProposal, "entryId" | "trackId">[],
+): PlaylistExport {
+  const links = new Map(accepted.map((p) => [p.entryId, p.trackId]));
+  if (!links.size) return playlist;
+  return {
+    ...playlist,
+    entries: playlist.entries.map((e) =>
+      !e.localTrackId && links.has(e.id)
+        ? { ...e, localTrackId: links.get(e.id) }
+        : e,
+    ),
+  };
+}
 export function matchedExportIds(
   playlist: PlaylistExport,
   tracks: Track[],
